@@ -221,12 +221,22 @@ void DAO::save(const QString& userName, const QString& email, const QString& api
 //		},
 //	]
 //}
-QJsonDocument DAO::query(const QString& api)
+QJsonDocument DAO::query(const QString& fullClassName)
 {
-    QJsonObject apiJson;
-    apiJson.insert("api", api);
-    apiJson.insert("questions", createQuestionsJason(getAPIID(api)));
-    return QJsonDocument(apiJson);
+    QJsonArray apisJson;
+    QSqlQuery query;
+    query.exec(tr("select ID, API from APIs where API like \'%1%\'").arg(fullClassName));
+    while(query.next())
+    {
+        int     apiID = query.value(0).toInt();
+        QString api   = query.value(1).toString().section(";", -1, -1);
+        QJsonObject apiJson;
+        apiJson.insert("api",       api);
+        apiJson.insert("questions", createQuestionsJason(apiID));
+        apisJson.append(apiJson);
+    }
+
+    return QJsonDocument(apisJson);
 }
 
 QJsonObject DAO::createUserJson(int userID) const

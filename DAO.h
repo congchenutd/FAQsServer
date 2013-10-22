@@ -12,7 +12,7 @@ public:
 
     void save(const QString& userName, const QString& email, const QString& api,
               const QString& question, const QString& link,  const QString& title);
-    QJsonDocument query(const QString& api);
+    QJsonDocument query(const QString& fullClassName);
 
 private:
     DAO();
