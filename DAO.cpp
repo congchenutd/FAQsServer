@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QDebug>
 
 DAO* DAO::_instance = 0;
 
@@ -24,18 +25,18 @@ DAO::DAO()
     QSqlQuery query;
     query.exec("create table Users ( \
                ID    int primary key, \
-               Name  varchar unique, \
+               Name  varchar unique not null, \
                Email varchar unique)");
     query.exec("create table APIs ( \
                ID      int primary key, \
-               API     varchar unique)");            // lib;package;class;method
+               API     varchar unique not null)");            // lib;package;class;method
     query.exec("create table Questions ( \
                ID       int primary key, \
-               Question varchar unique)");
+               Question varchar unique not null)");
     query.exec("create table Answers ( \
                ID    int primary key, \
-               Link  varchar unique, \
-               Title varchar)");
+               Link  varchar unique not null, \
+               Title varchar        not null)");
     query.exec("create table QuestionsUsersRelation ( \
                QuestionID int references Questions(ID) on delete cascade on update cascade, \
                UserID     int references Users    (ID) on delete cascade on update cascade, \
@@ -83,6 +84,9 @@ int DAO::getID(const QString& tableName, const QString& section, const QString& 
 
 void DAO::updateUser(const QString& userName, const QString& email)
 {
+    if(userName.isEmpty())
+        return;
+
     QSqlQuery query;
     int id = getUserID(userName);
     if(id > 0) {
@@ -101,6 +105,9 @@ void DAO::updateUser(const QString& userName, const QString& email)
 
 void DAO::updateAPI(const QString& api)
 {
+    if(api.isEmpty())
+        return;
+
     QSqlQuery query;
     int id = getAPIID(api);
     if(id > 0) {
@@ -117,6 +124,9 @@ void DAO::updateAPI(const QString& api)
 
 void DAO::updateQuestion(const QString& question)
 {
+    if(question.isEmpty())
+        return;
+
     QSqlQuery query;
     int id = getQuestionID(question);
     if(id > 0) {
@@ -133,6 +143,9 @@ void DAO::updateQuestion(const QString& question)
 
 void DAO::updateAnswer(const QString& link, const QString& title)
 {
+    if(link.isEmpty())
+        return;
+
     QSqlQuery query;
     int id = getAnswerID(link);
     if(id > 0) {
