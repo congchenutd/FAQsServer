@@ -216,20 +216,19 @@ void DAO::save(const QString& userName, const QString& email, const QString& api
 //			"question": "question2",
 //			"users"   : [{"username": "user1", "email": "user1@gmai.com"},
 //						 {"username": "user2", "email": "user2@gmail.com"}],
-//			"answers" : [{"link": "link3", "title": "title3"},
-//						 {"link": "link4", "title": "title4"}]
+//			"answers" : []
 //		},
 //	]
 //}
-QJsonDocument DAO::query(const QString& fullClassName)
+QJsonDocument DAO::query(const QString& classSignature)
 {
     QJsonArray apisJson;
     QSqlQuery query;
-    query.exec(tr("select ID, API from APIs where API like \'%1%\'").arg(fullClassName));
+    query.exec(tr("select ID, API from APIs where API like \'%1%\'").arg(classSignature));
     while(query.next())
     {
         int     apiID = query.value(0).toInt();
-        QString api   = query.value(1).toString().section(";", -1, -1);
+        QString api   = query.value(1).toString().section(";", -1, -1);  // remove library
         QJsonObject apiJson;
         apiJson.insert("api",       api);
         apiJson.insert("questions", createQuestionsJason(apiID));
@@ -281,7 +280,11 @@ QJsonArray DAO::createAnswersJson(int questionID) const
     QSqlQuery query;
     query.exec(tr("select AnswerID from QuestionsAnswersRelation where QuestionID = %1").arg(questionID));
     while(query.next())
-        result.append(createAnswerJson(query.value(0).toInt()));
+    {
+        QJsonObject answerJson = createAnswerJson(query.value(0).toInt());
+        if(!answerJson.isEmpty())
+            result.append(answerJson);
+    }
     return result;
 }
 
