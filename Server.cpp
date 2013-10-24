@@ -29,6 +29,8 @@ void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
         return;
     }
 
+    qDebug() << url;
+
     url.remove(0, 2);  // remove "/?"
     Parameters params = parseParameters(url);
     QString action = params["action"];

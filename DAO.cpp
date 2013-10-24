@@ -76,9 +76,10 @@ int DAO::getAnswerID(const QString& link) const {
 int DAO::getID(const QString& tableName, const QString& section, const QString& value) const
 {
     QSqlQuery query;
-    query.exec(tr("select ID from %1 where %2 = \'%3\'").arg(tableName)
-                                                        .arg(section)
-                                                        .arg(value));
+    query.prepare(tr("select ID from %1 where %2 = :value").arg(tableName)
+                                                           .arg(section));
+    query.bindValue(":value", value);
+    query.exec();
     return query.next() ? query.value(0).toInt() : -1;
 }
 
@@ -90,17 +91,16 @@ void DAO::updateUser(const QString& userName, const QString& email)
     QSqlQuery query;
     int id = getUserID(userName);
     if(id > 0) {
-        query.exec(tr("update Users set Name = \'%1\', Email = \'%2\' where ID = %3")
-                   .arg(userName)
-                   .arg(email)
-                   .arg(id));
+        query.prepare("update Users set Name = :name, Email = :email where ID = :id");
+        query.bindValue(":id", id);
     }
     else {
-        query.exec(tr("insert into Users values (%1, \'%2\', \'%3\')")
-                   .arg(getNextID("Users"))
-                   .arg(userName)
-                   .arg(email));
+        query.prepare("insert into Users values (:id, :name, :email)");
+        query.bindValue(":id", getNextID("Users"));
     }
+    query.bindValue(":name",  userName);
+    query.bindValue(":email", email);
+    query.exec();
 }
 
 void DAO::updateAPI(const QString& api)
@@ -111,15 +111,15 @@ void DAO::updateAPI(const QString& api)
     QSqlQuery query;
     int id = getAPIID(api);
     if(id > 0) {
-        query.exec(tr("update APIs set API = \'%1\' where ID = %2")
-                   .arg(api)
-                   .arg(id));
+        query.prepare("update APIs set API = :api where ID = :id");
+        query.bindValue(":id", id);
     }
     else {
-        query.exec(tr("insert into APIs values (%1, \'%2\')")
-                   .arg(getNextID("APIs"))
-                   .arg(api));
+        query.prepare("insert into APIs values (:id, :api)");
+        query.bindValue(":id", getNextID("APIs"));
     }
+    query.bindValue(":api", api);
+    query.exec();
 }
 
 void DAO::updateQuestion(const QString& question)
@@ -130,15 +130,15 @@ void DAO::updateQuestion(const QString& question)
     QSqlQuery query;
     int id = getQuestionID(question);
     if(id > 0) {
-        query.exec(tr("update Questions set Question = \'%1\' where ID = %2")
-                   .arg(question)
-                   .arg(id));
+        query.prepare("update Questions set Question = :question where ID = :id");
+        query.bindValue(":id", id);
     }
     else {
-        query.exec(tr("insert into Questions values (%1, \'%2\')")
-                   .arg(getNextID("Questions"))
-                   .arg(question));
+        query.prepare("insert into Questions values (:id, :question)");
+        query.bindValue(":id", getNextID("Questions"));
     }
+    query.bindValue(":question", question);
+    query.exec();
 }
 
 void DAO::updateAnswer(const QString& link, const QString& title)
@@ -149,17 +149,16 @@ void DAO::updateAnswer(const QString& link, const QString& title)
     QSqlQuery query;
     int id = getAnswerID(link);
     if(id > 0) {
-        query.exec(tr("update Answers set Link = \'%1\', Title = \'%2\' where ID = %3")
-                   .arg(link)
-                   .arg(title)
-                   .arg(id));
+        query.prepare("update Answers set Link = :link, Title = :title where ID = :id");
+        query.bindValue(":id", id);
     }
     else {
-        query.exec(tr("insert into Answers values (%1, \'%2\', \'%3\')")
-                   .arg(getNextID("Answers"))
-                   .arg(link)
-                   .arg(title));
+        query.prepare("insert into Answers values (:id, :link, :title)");
+        query.bindValue(":id", getNextID("Answers"));
     }
+    query.bindValue(":link",  link);
+    query.bindValue(":title", title);
+    query.exec();
 }
 
 void DAO::updateQuestionsUsersRelation(int questionID, int userID)
@@ -207,7 +206,6 @@ void DAO::updateQuestionsAnswersRelation(int questionID, int answerID)
 void DAO::save(const QString& userName, const QString& email, const QString& api,
                const QString& question, const QString& link,  const QString& title)
 {
-    qDebug() << userName << email << api << question << link << title;
     updateUser(userName, email);
     updateAPI(api);
     updateQuestion(question);
