@@ -164,6 +164,9 @@ void DAO::updateAnswer(const QString& link, const QString& title)
 
 void DAO::updateQuestionsUsersRelation(int questionID, int userID)
 {
+    if(questionID < 0 || userID < 0)
+        return;
+
     QSqlQuery query;
     query.exec(tr("delete from QuestionsUsersRelation where QuestionID = %1 and UserID = %2")
                .arg(questionID)
@@ -175,6 +178,9 @@ void DAO::updateQuestionsUsersRelation(int questionID, int userID)
 
 void DAO::updateQuestionsAPIsRelation(int questionID, int apiID)
 {
+    if(questionID < 0 || apiID < 0)
+        return;
+
     QSqlQuery query;
     query.exec(tr("delete from QuestionsAPIsRelation where QuestionID = %1 and APIID = %2")
                .arg(questionID)
@@ -186,6 +192,9 @@ void DAO::updateQuestionsAPIsRelation(int questionID, int apiID)
 
 void DAO::updateQuestionsAnswersRelation(int questionID, int answerID)
 {
+    if(questionID < 0 || answerID < 0)
+        return;
+
     QSqlQuery query;
     query.exec(tr("delete from QuestionsAnswersRelation where QuestionID = %1 and AnswerID = %2")
                .arg(questionID)
@@ -198,6 +207,7 @@ void DAO::updateQuestionsAnswersRelation(int questionID, int answerID)
 void DAO::save(const QString& userName, const QString& email, const QString& api,
                const QString& question, const QString& link,  const QString& title)
 {
+    qDebug() << userName << email << api << question << link << title;
     updateUser(userName, email);
     updateAPI(api);
     updateQuestion(question);

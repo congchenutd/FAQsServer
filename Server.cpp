@@ -47,16 +47,15 @@ Server::Parameters Server::parseParameters(const QString& url) const
     Parameters result;
     if(url.isEmpty())
         return result;
+
     QStringList sections = url.split("&");
     if(sections.length() == 0)
         return result;
 
     foreach(const QString& section, sections)
-    {
-        QStringList pair = section.split("=");
-        if(pair.length() == 2)
-            result.insert(pair.at(0), pair.at(1));
-    }
+        result.insert(section.section('=', 0, 0),    // left part of the 1st =
+                      section.section('=', 1, -1));  // right of the =
+
     return result;
 }
 
@@ -74,7 +73,7 @@ void Server::processSave(const Parameters& params, QHttpResponse* res)
                              params["email"],
                              params["api"],
                              params["question"],
-                             params["link"],
+                             QString(params["link"]).replace("%26", "&"),
                              params["title"]);
 
     res->setHeader("Content-Type", "text/html");
