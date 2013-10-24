@@ -73,7 +73,7 @@ void Server::processSave(const Parameters& params, QHttpResponse* res)
                              params["email"],
                              params["api"],
                              params["question"],
-                             QString(params["link"]).replace("%26", "&"),
+                             params["link"],
                              params["title"]);
 
     res->setHeader("Content-Type", "text/html");
