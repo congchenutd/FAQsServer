@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QJsonDocument>
 #include <QDebug>
+#include <QUrl>
 
 #include <qhttpserver.h>
 #include <qhttprequest.h>
@@ -71,12 +72,15 @@ void Server::processPing(const Parameters& params, QHttpResponse* res)
 
 void Server::processSave(const Parameters& params, QHttpResponse* res)
 {
+    // link and title may contain reserved chars, such as & < > #
+    // they are pertentage encoded by the client
+    // convert them back to human readable chars
     DAO::getInstance()->save(params["username"],
                              params["email"],
                              params["api"],
                              params["question"],
-                             params["link"],
-                             params["title"]);
+                             QUrl::fromPercentEncoding(params["link"] .toUtf8()),
+                             QUrl::fromPercentEncoding(params["title"].toUtf8()));
 
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);

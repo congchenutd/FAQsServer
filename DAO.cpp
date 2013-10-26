@@ -206,10 +206,10 @@ void DAO::updateQuestionsAnswersRelation(int questionID, int answerID)
 void DAO::save(const QString& userName, const QString& email, const QString& api,
                const QString& question, const QString& link,  const QString& title)
 {
-    updateUser(userName, email);
-    updateAPI(api);
+    updateUser    (userName, email);
+    updateAPI     (api);
     updateQuestion(question);
-    updateAnswer(link, title);
+    updateAnswer  (link, title);
 
     int questionID = getQuestionID(question);
     int userID     = getUserID    (userName);
