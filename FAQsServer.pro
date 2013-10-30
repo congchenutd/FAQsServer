@@ -4,7 +4,10 @@ TARGET = FAQsServer
 QT += network sql
 QT -= gui
 
-CONFIG += debug
+CONFIG += console
+CONFIG -= app_bundle
+
+TEMPLATE = app
 
 INCLUDEPATH += $$PWD/include
 
@@ -17,7 +20,9 @@ win32 {
 
 SOURCES = \
     Server.cpp \
-    DAO.cpp
+    DAO.cpp \
+    SimilarityComparer.cpp
 HEADERS = \
     Server.h \
-    DAO.h
+    DAO.h \
+    SimilarityComparer.h

@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QJsonDocument>
 #include <QDebug>
+#include <QUrl>
 
 #include <qhttpserver.h>
 #include <qhttprequest.h>
@@ -29,6 +30,8 @@ void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
         return;
     }
 
+    qDebug() << url;
+
     url.remove(0, 2);  // remove "/?"
     Parameters params = parseParameters(url);
     QString action = params["action"];
@@ -47,16 +50,15 @@ Server::Parameters Server::parseParameters(const QString& url) const
     Parameters result;
     if(url.isEmpty())
         return result;
+
     QStringList sections = url.split("&");
     if(sections.length() == 0)
         return result;
 
     foreach(const QString& section, sections)
-    {
-        QStringList pair = section.split("=");
-        if(pair.length() == 2)
-            result.insert(pair.at(0), pair.at(1));
-    }
+        result.insert(section.section('=', 0, 0),    // left part of the 1st =
+                      section.section('=', 1, -1));  // right of the =
+
     return result;
 }
 
@@ -70,12 +72,15 @@ void Server::processPing(const Parameters& params, QHttpResponse* res)
 
 void Server::processSave(const Parameters& params, QHttpResponse* res)
 {
+    // link and title may contain reserved chars, such as & < > #
+    // they are pertentage encoded by the client
+    // convert them back to human readable chars
     DAO::getInstance()->save(params["username"],
                              params["email"],
                              params["api"],
                              params["question"],
-                             params["link"],
-                             params["title"]);
+                             QUrl::fromPercentEncoding(params["link"] .toUtf8()),
+                             QUrl::fromPercentEncoding(params["title"].toUtf8()));
 
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
@@ -94,6 +99,10 @@ void Server::processQuery(const Server::Parameters& params, QHttpResponse* res)
 
 int main(int argc, char **argv)
 {
+//    QString link = "title=SourceForge.net%3A%20BSF4ooRexx%3A%20bsf4oorexx-bugs&link=http%3A%2F%2Fsourceforge.net%2Fmailarchive%2Fforum.php%3Fset%3Dcustom%26viewmonth%3D%26viewday%3D%26forum_name%3Dbsf4oorexx-bugs%26style%3Dnested%26max_rows%3D50%26submit%3DChange%2BView";
+//    QString decoded = QUrl::fromPercentEncoding(link.toUtf8());
+//    qDebug() << decoded;
+
     QCoreApplication app(argc, argv);
     Server server;
     app.exec();
