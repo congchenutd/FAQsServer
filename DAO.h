@@ -4,15 +4,22 @@
 #include <QObject>
 
 class QJsonDocument;
+class SimilarityComparer;
 
-class DAO : QObject
+class DAO : public QObject
 {
+    Q_OBJECT
+
 public:
     static DAO* getInstance();
 
     void save(const QString& userName, const QString& email, const QString& api,
               const QString& question, const QString& link,  const QString& title);
     QJsonDocument query(const QString& classSignature);
+
+private slots:
+    void onComparisonResult(const QString& leadQuestion,
+                            const QString& question, qreal similarity);
 
 private:
     DAO();
@@ -25,21 +32,26 @@ private:
 
     void updateUser    (const QString& userName, const QString& email);
     void updateAPI     (const QString& api);
-    void updateQuestion(const QString& question);
+    void updateQuestion(const QString& question, int apiID);
     void updateAnswer  (const QString& link, const QString& title);
-    void updateQuestionsUsersRelation  (int questionID, int userID);
-    void updateQuestionsAPIsRelation   (int questionID, int apiID);
-    void updateQuestionsAnswersRelation(int questionID, int answerID);
+    void updateQuestionUserRelation  (int groupID, int userID);
+    void updateQuestionAPIRelation   (int groupID, int apiID);
+    void updateQuestionAnswerRelation(int groupID, int answerID);
+    void updateLead(int questionID);   // try to make questionID the new lead
 
-    QJsonObject createUserJson      (int userID)     const;
-    QJsonArray  createUsersJson     (int questionID) const;
-    QJsonObject createAnswerJson    (int answerID)   const;
-    QJsonArray  createAnswersJson   (int questionID) const;
-    QJsonObject createQuestionJason (int questionID) const;
-    QJsonArray  createQuestionsJason(int apiID)      const;
+    // compare question with other lead question associated with apiID
+    void measureSimilarity(const QString& question, int apiID);
+
+    QJsonObject createAnswerJson    (int answerID) const;
+    QJsonObject createUserJson      (int userID)   const;
+    QJsonArray  createAnswersJson   (const QStringList& questionIDs) const;
+    QJsonArray  createUsersJson     (const QStringList& questionIDs) const;
+    QJsonObject createQuestionJason (int leadID) const;
+    QJsonArray  createQuestionsJason(int apiID)  const;
 
 private:
     static DAO* _instance;
+    SimilarityComparer* _comparer;
 };
 
 #endif // DAO_H

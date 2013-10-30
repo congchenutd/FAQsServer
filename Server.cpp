@@ -99,6 +99,10 @@ void Server::processQuery(const Server::Parameters& params, QHttpResponse* res)
 
 int main(int argc, char **argv)
 {
+//    QString link = "title=SourceForge.net%3A%20BSF4ooRexx%3A%20bsf4oorexx-bugs&link=http%3A%2F%2Fsourceforge.net%2Fmailarchive%2Fforum.php%3Fset%3Dcustom%26viewmonth%3D%26viewday%3D%26forum_name%3Dbsf4oorexx-bugs%26style%3Dnested%26max_rows%3D50%26submit%3DChange%2BView";
+//    QString decoded = QUrl::fromPercentEncoding(link.toUtf8());
+//    qDebug() << decoded;
+
     QCoreApplication app(argc, argv);
     Server server;
     app.exec();

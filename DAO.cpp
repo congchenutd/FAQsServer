@@ -1,4 +1,5 @@
 #include "DAO.h"
+#include "SimilarityComparer.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QVariant>
@@ -6,6 +7,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDebug>
+#include <QStringList>
 
 DAO* DAO::_instance = 0;
 
@@ -23,32 +25,38 @@ DAO::DAO()
     database.open();
 
     QSqlQuery query;
-    query.exec("create table Users ( \
-               ID    int primary key, \
-               Name  varchar unique not null, \
-               Email varchar unique)");
     query.exec("create table APIs ( \
                ID      int primary key, \
-               API     varchar unique not null)");            // lib;package;class;method
-    query.exec("create table Questions ( \
-               ID       int primary key, \
-               Question varchar unique not null)");
+               API     varchar unique not null)");    // lib;package.class.method
     query.exec("create table Answers ( \
                ID    int primary key, \
                Link  varchar unique not null, \
                Title varchar        not null)");
-    query.exec("create table QuestionsUsersRelation ( \
+    query.exec("create table Users ( \
+               ID    int primary key, \
+               Name  varchar unique not null, \
+               Email varchar unique)");
+    query.exec("create table Questions ( \
+               ID         int primary key, \
+               Question   varchar unique not null, \
+               AskCount   int, \
+               Parent     int)");
+    query.exec("create table QuestionUserRelations ( \
                QuestionID int references Questions(ID) on delete cascade on update cascade, \
                UserID     int references Users    (ID) on delete cascade on update cascade, \
                primary key (QuestionID, UserID))");
-    query.exec("create table QuestionsAPIsRelation ( \
+    query.exec("create table QuestionAPIRelations ( \
                QuestionID int references Questions(ID) on delete cascade on update cascade, \
                APIID      int references APIs     (ID) on delete cascade on update cascade, \
                primary key (QuestionID, APIID))");
-    query.exec("create table QuestionsAnswersRelation ( \
+    query.exec("create table QuestionAnswerRelations ( \
                QuestionID int references Questions(ID) on delete cascade on update cascade, \
                AnswerID   int references Answers  (ID) on delete cascade on update cascade, \
                primary key (QuestionID, AnswerID))");
+
+    _comparer = new SimilarityComparer(this);
+    connect(_comparer, SIGNAL(comparisonResult  (QString,QString,qreal)),
+            this,      SLOT  (onComparisonResult(QString,QString,qreal)));
 }
 
 int DAO::getNextID(const QString& tableName) const
@@ -72,7 +80,6 @@ int DAO::getQuestionID(const QString& question) const {
 int DAO::getAnswerID(const QString& link) const {
     return getID("Answers", "Link", link);
 }
-
 int DAO::getID(const QString& tableName, const QString& section, const QString& value) const
 {
     QSqlQuery query;
@@ -81,6 +88,18 @@ int DAO::getID(const QString& tableName, const QString& section, const QString& 
     query.bindValue(":value", value);
     query.exec();
     return query.next() ? query.value(0).toInt() : -1;
+}
+
+void DAO::updateAPI(const QString& api)
+{
+    if(api.isEmpty() || getAPIID(api) >= 0)
+        return;
+
+    QSqlQuery query;
+    query.prepare("insert into APIs values (:id, :api)");
+    query.bindValue(":id",  getNextID("APIs"));
+    query.bindValue(":api", api);
+    query.exec();
 }
 
 void DAO::updateUser(const QString& userName, const QString& email)
@@ -103,42 +122,85 @@ void DAO::updateUser(const QString& userName, const QString& email)
     query.exec();
 }
 
-void DAO::updateAPI(const QString& api)
-{
-    if(api.isEmpty())
-        return;
-
-    QSqlQuery query;
-    int id = getAPIID(api);
-    if(id > 0) {
-        query.prepare("update APIs set API = :api where ID = :id");
-        query.bindValue(":id", id);
-    }
-    else {
-        query.prepare("insert into APIs values (:id, :api)");
-        query.bindValue(":id", getNextID("APIs"));
-    }
-    query.bindValue(":api", api);
-    query.exec();
-}
-
-void DAO::updateQuestion(const QString& question)
+void DAO::updateQuestion(const QString& question, int apiID)
 {
     if(question.isEmpty())
         return;
 
+    // update the ask count of the existing question
     QSqlQuery query;
-    int id = getQuestionID(question);
-    if(id > 0) {
-        query.prepare("update Questions set Question = :question where ID = :id");
-        query.bindValue(":id", id);
+    int questionID = getQuestionID(question);
+    if(questionID >= 0)
+    {
+        query.exec(tr("update Questions set AskCount = AskCount + 1 where ID = %1")
+                   .arg(questionID));
+        updateLead(questionID);
+        return;
     }
-    else {
-        query.prepare("insert into Questions values (:id, :question)");
-        query.bindValue(":id", getNextID("Questions"));
-    }
+
+    // or insert a new question
+    query.prepare("insert into Questions values (:id, :question, 1, -1)");
+    query.bindValue(":id",       getNextID("Questions"));
     query.bindValue(":question", question);
     query.exec();
+
+    measureSimilarity(question, apiID);
+}
+
+void DAO::measureSimilarity(const QString& question, int apiID)
+{
+    // find the lead questions the api has
+    QSqlQuery query;
+    query.exec(tr("select Question from QuestionAPIRelations, Questions\
+                   where APIID = %1 and QuestionID = ID and Parent = -1").arg(apiID));
+
+    // compare this question with each lead question
+    while(query.next())
+        _comparer->compare(query.value(0).toString(), question);
+}
+
+void DAO::onComparisonResult(const QString& leadQuestion,
+                             const QString& question, qreal similarity)
+{
+    if(similarity <= 0.5)
+        return;
+
+    QSqlQuery query;
+    query.exec(tr("update Questions set Parent = %1 where ID = %2")
+               .arg(getQuestionID(leadQuestion))
+               .arg(getQuestionID(question)));
+}
+
+void DAO::updateLead(int questionID)
+{
+    // get lead id
+    QSqlQuery query;
+    query.exec(tr("select Parent, AskCount from Questions where ID = %1 and Parent <> -1")
+               .arg(questionID));
+    if(!query.next())   // questionID is the lead
+        return;
+
+    int leadID    = query.value(0).toInt();
+    int thisCount = query.value(1).toInt();
+
+    // the lead count
+    query.exec(tr("select AskCount from Questions where ID = %1").arg(leadID));
+    int leadCount = query.next() ? query.value(0).toInt() : 0;
+
+    if(thisCount <= leadCount)
+        return;
+
+    // all children of lead now come my chidren
+    query.exec(tr("update Questions set Parent = %1 where Parent = %2")
+               .arg(questionID).arg(leadID));
+
+    // lead now my child
+    query.exec(tr("update Questions set Parent = %1 where ID = %2")
+               .arg(questionID).arg(leadID));
+
+    // I'm nobody's child
+    query.exec(tr("update Questions set Parent = -1 where ID = %1")
+               .arg(questionID));
 }
 
 void DAO::updateAnswer(const QString& link, const QString& title)
@@ -161,45 +223,45 @@ void DAO::updateAnswer(const QString& link, const QString& title)
     query.exec();
 }
 
-void DAO::updateQuestionsUsersRelation(int questionID, int userID)
+void DAO::updateQuestionUserRelation(int groupID, int userID)
 {
-    if(questionID < 0 || userID < 0)
+    if(groupID < 0 || userID < 0)
         return;
 
     QSqlQuery query;
-    query.exec(tr("delete from QuestionsUsersRelation where QuestionID = %1 and UserID = %2")
-               .arg(questionID)
+    query.exec(tr("delete from QuestionUserRelations where GroupID = %1 and UserID = %2")
+               .arg(groupID)
                .arg(userID));
-    query.exec(tr("insert into QuestionsUsersRelation values (%1, %2)")
-               .arg(questionID)
+    query.exec(tr("insert into QuestionUserRelations values (%1, %2)")
+               .arg(groupID)
                .arg(userID));
 }
 
-void DAO::updateQuestionsAPIsRelation(int questionID, int apiID)
+void DAO::updateQuestionAPIRelation(int groupID, int apiID)
 {
-    if(questionID < 0 || apiID < 0)
+    if(groupID < 0 || apiID < 0)
         return;
 
     QSqlQuery query;
-    query.exec(tr("delete from QuestionsAPIsRelation where QuestionID = %1 and APIID = %2")
-               .arg(questionID)
+    query.exec(tr("delete from QuestionAPIRelations where GroupID = %1 and APIID = %2")
+               .arg(groupID)
                .arg(apiID));
-    query.exec(tr("insert into QuestionsAPIsRelation values (%1, %2)")
-               .arg(questionID)
+    query.exec(tr("insert into QuestionAPIRelations values (%1, %2)")
+               .arg(groupID)
                .arg(apiID));
 }
 
-void DAO::updateQuestionsAnswersRelation(int questionID, int answerID)
+void DAO::updateQuestionAnswerRelation(int groupID, int answerID)
 {
-    if(questionID < 0 || answerID < 0)
+    if(groupID < 0 || answerID < 0)
         return;
 
     QSqlQuery query;
-    query.exec(tr("delete from QuestionsAnswersRelation where QuestionID = %1 and AnswerID = %2")
-               .arg(questionID)
+    query.exec(tr("delete from QuestionAnswerRelations where GroupID = %1 and AnswerID = %2")
+               .arg(groupID)
                .arg(answerID));
-    query.exec(tr("insert into QuestionsAnswersRelation values (%1, %2)")
-               .arg(questionID)
+    query.exec(tr("insert into QuestionAnswerRelations values (%1, %2)")
+               .arg(groupID)
                .arg(answerID));
 }
 
@@ -208,18 +270,17 @@ void DAO::save(const QString& userName, const QString& email, const QString& api
 {
     updateUser    (userName, email);
     updateAPI     (api);
-    updateQuestion(question);
     updateAnswer  (link, title);
 
-    int questionID = getQuestionID(question);
-    int userID     = getUserID    (userName);
     int apiID      = getAPIID     (api);
     int answerID   = getAnswerID  (link);
-    updateQuestionsUsersRelation  (questionID, userID);
-    updateQuestionsAPIsRelation   (questionID, apiID);
-    updateQuestionsAnswersRelation(questionID, answerID);
+    int userID     = getUserID    (userName);
+    updateQuestion(question,   apiID);
+    int questionID = getQuestionID(question);
+    updateQuestionUserRelation  (questionID, userID);
+    updateQuestionAPIRelation   (questionID, apiID);
+    updateQuestionAnswerRelation(questionID, answerID);
 }
-
 
 // An example of returned JSON file:
 //{
@@ -259,29 +320,6 @@ QJsonDocument DAO::query(const QString& classSignature)
     return QJsonDocument(apisJson);
 }
 
-QJsonObject DAO::createUserJson(int userID) const
-{
-    QJsonObject result;
-    QSqlQuery query;
-    query.exec(tr("select Name, Email from Users where ID = %1").arg(userID));
-    if(query.next())
-    {
-        result.insert("name",  query.value(0).toString());
-        result.insert("email", query.value(1).toString());
-    }
-    return result;
-}
-
-QJsonArray DAO::createUsersJson(int questionID) const
-{
-    QJsonArray result;
-    QSqlQuery query;
-    query.exec(tr("select UserID from QuestionsUsersRelation where QuestionID = %1").arg(questionID));
-    while(query.next())
-        result.append(createUserJson(query.value(0).toInt()));
-    return result;
-}
-
 QJsonObject DAO::createAnswerJson(int answerID) const
 {
     QJsonObject result;
@@ -295,11 +333,25 @@ QJsonObject DAO::createAnswerJson(int answerID) const
     return result;
 }
 
-QJsonArray DAO::createAnswersJson(int questionID) const
+QJsonObject DAO::createUserJson(int userID) const
+{
+    QJsonObject result;
+    QSqlQuery query;
+    query.exec(tr("select Name, Email from Users where ID = %1").arg(userID));
+    if(query.next())
+    {
+        result.insert("name",  query.value(0).toString());
+        result.insert("email", query.value(1).toString());
+    }
+    return result;
+}
+
+QJsonArray DAO::createAnswersJson(const QStringList& questionIDs) const
 {
     QJsonArray result;
     QSqlQuery query;
-    query.exec(tr("select AnswerID from QuestionsAnswersRelation where QuestionID = %1").arg(questionID));
+    query.exec(tr("select AnswerID from QuestionAnswerRelations\
+                   where QuestionID in (%1)").arg(questionIDs.join(",")));
     while(query.next())
     {
         QJsonObject answerJson = createAnswerJson(query.value(0).toInt());
@@ -309,17 +361,37 @@ QJsonArray DAO::createAnswersJson(int questionID) const
     return result;
 }
 
-QJsonObject DAO::createQuestionJason(int questionID) const
+QJsonArray DAO::createUsersJson(const QStringList& questionIDs) const
+{
+    QJsonArray result;
+    QSqlQuery query;
+    query.exec(tr("select distinct UserID from QuestionUserRelations \
+                   where QuestionID in (%1)").arg(questionIDs.join(",")));
+    while(query.next())
+        result.append(createUserJson(query.value(0).toInt()));
+    return result;
+}
+
+QJsonObject DAO::createQuestionJason(int leadID) const
 {
     QJsonObject result;
     QSqlQuery query;
-    query.exec(tr("select Question from Questions where ID = %1").arg(questionID));
+    query.exec(tr("select Question from Questions where ID = %1").arg(leadID));
     if(query.next())
     {
-        result.insert("question", query.value(0).toString());
-        result.insert("users",   createUsersJson  (questionID));
-        result.insert("answers", createAnswersJson(questionID));
+        result.insert("question", query.value(0).toString());  // lead question
+
+        // all questions in this group
+        QStringList questionIDs;
+        query.exec(tr("select ID from Questions \
+                       where Parent = %1 or ID = %1").arg(leadID));
+        while(query.next())
+            questionIDs << query.value(0).toString();
+
+        result.insert("users",   createUsersJson  (questionIDs));
+        result.insert("answers", createAnswersJson(questionIDs));
     }
+
     return result;
 }
 
@@ -327,7 +399,10 @@ QJsonArray DAO::createQuestionsJason(int apiID) const
 {
     QJsonArray result;
     QSqlQuery query;
-    query.exec(tr("select QuestionID from QuestionsAPIsRelation where APIID = %1").arg(apiID));
+
+    // find all lead questions
+    query.exec(tr("select QuestionID from QuestionAPIRelations, Questions\
+                   where QuestionID = ID and Parent = -1 and APIID = %1").arg(apiID));
     while(query.next())
         result.append(createQuestionJason(query.value(0).toInt()));
     return result;
