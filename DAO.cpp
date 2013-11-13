@@ -190,11 +190,11 @@ void DAO::updateLead(int questionID)
     if(thisCount <= leadCount)
         return;
 
-    // all children of lead now come my chidren
+    // all children of lead now become my chidren
     query.exec(tr("update Questions set Parent = %1 where Parent = %2")
                .arg(questionID).arg(leadID));
 
-    // lead now my child
+    // lead is now my child
     query.exec(tr("update Questions set Parent = %1 where ID = %2")
                .arg(questionID).arg(leadID));
 
@@ -268,14 +268,15 @@ void DAO::updateQuestionAnswerRelation(int groupID, int answerID)
 void DAO::save(const QString& userName, const QString& email, const QString& api,
                const QString& question, const QString& link,  const QString& title)
 {
-    updateUser    (userName, email);
-    updateAPI     (api);
-    updateAnswer  (link, title);
+    updateUser  (userName, email);
+    updateAPI   (api);
+    updateAnswer(link, title);
 
-    int apiID      = getAPIID     (api);
+    int apiID = getAPIID(api);
+    updateQuestion(question, apiID);
+
     int answerID   = getAnswerID  (link);
     int userID     = getUserID    (userName);
-    updateQuestion(question,   apiID);
     int questionID = getQuestionID(question);
     updateQuestionUserRelation  (questionID, userID);
     updateQuestionAPIRelation   (questionID, apiID);

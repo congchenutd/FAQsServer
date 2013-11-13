@@ -5,6 +5,7 @@
 
 class QNetworkReply;
 
+// communicating with a semantic similarity web service
 class SimilarityComparer : public QObject
 {
     Q_OBJECT

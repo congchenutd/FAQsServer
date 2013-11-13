@@ -21,7 +21,8 @@ win32 {
 SOURCES = \
     Server.cpp \
     DAO.cpp \
-    SimilarityComparer.cpp
+    SimilarityComparer.cpp \
+    Main.cpp
 HEADERS = \
     Server.h \
     DAO.h \
