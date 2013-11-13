@@ -15,8 +15,10 @@ private slots:
 
 private:
     Parameters parseParameters(const QString& url) const;
-    void processPing (const Parameters& params, QHttpResponse* res);
-    void processSave (const Parameters& params, QHttpResponse* res);
-    void processQuery(const Parameters& params, QHttpResponse* res);
+    void doPing     (const Parameters& params, QHttpResponse* res);
+    void doSave     (const Parameters& params, QHttpResponse* res);
+    void doLogAPI  (const Parameters& params, QHttpResponse* res);
+    void doLogAnswer(const Parameters& params, QHttpResponse* res);
+    void doQuery    (const Parameters& params, QHttpResponse* res);
 };
 

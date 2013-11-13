@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include <QDebug>
 #include <QStringList>
+#include <QDateTime>
 
 DAO* DAO::_instance = 0;
 
@@ -53,6 +54,16 @@ DAO::DAO()
                QuestionID int references Questions(ID) on delete cascade on update cascade, \
                AnswerID   int references Answers  (ID) on delete cascade on update cascade, \
                primary key (QuestionID, AnswerID))");
+    query.exec("create table UserAPIHistory ( \
+               UserID int references Users(ID) on delete cascade on update cascade, \
+               APIID  int references APIs (ID) on delete cascade on update cascade, \
+               Time   varchar, \
+               primary key (UserID, APIID, Time))");
+    query.exec("create table UserQuestionHistory ( \
+                UserID     int references Users    (ID) on delete cascade on update cascade, \
+                QuestionID int references Questions(ID) on delete cascade on update cascade, \
+                Time       varchar, \
+                primary key (UserID, QuestionID, Time))");
 
     _comparer = new SimilarityComparer(this);
     connect(_comparer, SIGNAL(comparisonResult  (QString,QString,qreal)),
@@ -156,7 +167,7 @@ void DAO::measureSimilarity(const QString& question, int apiID)
 
     // compare this question with each lead question
     while(query.next())
-        _comparer->compare(query.value(0).toString(), question);
+            _comparer->compare(query.value(0).toString(), question);
 }
 
 void DAO::onComparisonResult(const QString& leadQuestion,
@@ -283,6 +294,59 @@ void DAO::save(const QString& userName, const QString& email, const QString& api
     updateQuestionAnswerRelation(questionID, answerID);
 }
 
+void DAO::logAPI(const QString& userName, const QString& email, const QString& api)
+{
+    qDebug() << "Log link: " << userName << email << api;
+
+    updateUser(userName, email);
+    updateAPI (api);
+
+    int userID = getUserID(userName);
+    int apiID  = getAPIID(api);
+    addUserAPIHistory(userID, apiID);
+}
+
+void DAO::logAnswer(const QString& userName, const QString& email, const QString& link)
+{
+    qDebug() << "Log answer: " << userName << email << link;
+
+    updateUser(userName, email);
+
+    int userID   = getUserID  (userName);
+    int answerID = getAnswerID(link);
+    addUserQuestionHistory(userID, answerID);
+}
+
+void DAO::addUserAPIHistory(int userID, int apiID)
+{
+    QSqlQuery query;
+    query.prepare("insert into UserAPIHistory values (:userID, :apiID, :time)");
+    query.bindValue(":userID", userID);
+    query.bindValue(":apiID",  apiID);
+    query.bindValue(":time",   getCurrentDateTime());
+    query.exec();
+}
+
+void DAO::addUserQuestionHistory(int userID, int answerID)
+{
+    QSqlQuery query;
+    query.exec(tr("select QuestionID from QuestionAnswerRelations where AnswerID = %1")
+               .arg(answerID));
+    if(query.next())
+    {
+        int questionID = query.value(0).toInt();
+        query.prepare("insert into UserQuestionHistory values (:userID, :questionID, :time)");
+        query.bindValue(":userID",     userID);
+        query.bindValue(":questionID", questionID);
+        query.bindValue(":time",       getCurrentDateTime());
+        query.exec();
+    }
+}
+
+QString DAO::getCurrentDateTime() const {
+    return QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+}
+
 // An example of returned JSON file:
 //{
 //	"api": "java.util.ArrayList.ensureCapacity",
@@ -406,5 +470,5 @@ QJsonArray DAO::createQuestionsJason(int apiID) const
                    where QuestionID = ID and Parent = -1 and APIID = %1").arg(apiID));
     while(query.next())
         result.append(createQuestionJason(query.value(0).toInt()));
-    return result;
+               return result;
 }

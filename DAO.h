@@ -15,6 +15,8 @@ public:
 
     void save(const QString& userName, const QString& email, const QString& api,
               const QString& question, const QString& link,  const QString& title);
+    void logAPI  (const QString& userName, const QString& email, const QString& api);
+    void logAnswer(const QString& userName, const QString& email, const QString& link);
     QJsonDocument query(const QString& classSignature);
 
 private slots:
@@ -42,12 +44,17 @@ private:
     // compare question with other lead question associated with apiID
     void measureSimilarity(const QString& question, int apiID);
 
+    void addUserAPIHistory     (int userID, int apiID);
+    void addUserQuestionHistory(int userID, int answerID);
+
     QJsonObject createAnswerJson    (int answerID) const;
     QJsonObject createUserJson      (int userID)   const;
     QJsonArray  createAnswersJson   (const QStringList& questionIDs) const;
     QJsonArray  createUsersJson     (const QStringList& questionIDs) const;
     QJsonObject createQuestionJason (int leadID) const;
     QJsonArray  createQuestionsJason(int apiID)  const;
+
+    QString getCurrentDateTime() const;
 
 private:
     static DAO* _instance;

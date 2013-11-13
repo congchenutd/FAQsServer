@@ -2,6 +2,7 @@
 #include "DAO.h"
 #include <QStringList>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QUrl>
 #include <QDebug>
 
@@ -34,11 +35,15 @@ void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
     Parameters params = parseParameters(url);
     QString action = params["action"];
     if(action == "ping")
-        processPing(params, res);
+        doPing(params, res);
     else if(action == "save")
-        processSave(params, res);
+        doSave(params, res);
+    else if(action == "logapi")
+        doLogAPI(params, res);
+    else if(action == "loganswer")
+        doLogAnswer(params, res);
     else if(action == "query")
-        processQuery(params, res);
+        doQuery(params, res);
 
     res->end();
 }
@@ -60,7 +65,7 @@ Server::Parameters Server::parseParameters(const QString& url) const
     return result;
 }
 
-void Server::processPing(const Parameters& params, QHttpResponse* res)
+void Server::doPing(const Parameters& params, QHttpResponse* res)
 {
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
@@ -68,7 +73,7 @@ void Server::processPing(const Parameters& params, QHttpResponse* res)
     res->write(tr("Hello %1, I'm alive!").arg(userName).toUtf8());
 }
 
-void Server::processSave(const Parameters& params, QHttpResponse* res)
+void Server::doSave(const Parameters& params, QHttpResponse* res)
 {
     // link and title may contain reserved chars, such as & < > #
     // they are pertentage encoded by the client
@@ -85,11 +90,35 @@ void Server::processSave(const Parameters& params, QHttpResponse* res)
     res->write(tr("Your FAQ is saved").toUtf8());
 }
 
-void Server::processQuery(const Server::Parameters& params, QHttpResponse* res)
+void Server::doLogAPI(const Server::Parameters& params, QHttpResponse* res)
 {
-    QJsonDocument json = DAO::getInstance()->query(params["api"]);
+    DAO::getInstance()->logAPI(params["username"],
+                            params["email"],
+                            params["api"]);
+
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
-    res->write(json.toJson());
+    res->write(tr("Your API is logged").toUtf8());
+}
+
+void Server::doLogAnswer(const Server::Parameters& params, QHttpResponse* res)
+{
+    DAO::getInstance()->logAnswer(params["username"],
+                            params["email"],
+                            QUrl::fromPercentEncoding(params["link"] .toUtf8()));
+
+    res->setHeader("Content-Type", "text/html");
+    res->writeHead(200);
+    res->write(tr("Your Answer is logged").toUtf8());
+}
+
+void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
+{
+    QJsonDocument json = DAO::getInstance()->query(params["class"]);
+    if(json.array().isEmpty())   // returned is a json array
+        return;
+    res->setHeader("Content-Type", "text/html");
+    res->writeHead(200);
+    res->write(json.toJson());   // to json file
     qDebug() << json.toJson();
 }
