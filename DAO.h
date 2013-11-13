@@ -41,11 +41,11 @@ private:
     void updateQuestionAnswerRelation(int groupID, int answerID);
     void updateLead(int questionID);   // try to make questionID the new lead
 
-    // compare question with other lead question associated with apiID
+    // compare question with other lead questions associated with apiID
     void measureSimilarity(const QString& question, int apiID);
 
-    void addUserAPIHistory     (int userID, int apiID);
-    void addUserQuestionHistory(int userID, int answerID);
+    void addUserAPIHistory     (int userID, int apiID);     // user viewed API doc
+    void addUserQuestionHistory(int userID, int answerID);  // user clicked the answer
 
     QJsonObject createAnswerJson    (int answerID) const;
     QJsonObject createUserJson      (int userID)   const;

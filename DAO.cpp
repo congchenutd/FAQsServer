@@ -300,10 +300,7 @@ void DAO::logAPI(const QString& userName, const QString& email, const QString& a
 
     updateUser(userName, email);
     updateAPI (api);
-
-    int userID = getUserID(userName);
-    int apiID  = getAPIID(api);
-    addUserAPIHistory(userID, apiID);
+    addUserAPIHistory(getUserID(userName), getAPIID(api));
 }
 
 void DAO::logAnswer(const QString& userName, const QString& email, const QString& link)
@@ -311,10 +308,7 @@ void DAO::logAnswer(const QString& userName, const QString& email, const QString
     qDebug() << "Log answer: " << userName << email << link;
 
     updateUser(userName, email);
-
-    int userID   = getUserID  (userName);
-    int answerID = getAnswerID(link);
-    addUserQuestionHistory(userID, answerID);
+    addUserQuestionHistory(getUserID(userName), getAnswerID(link));
 }
 
 void DAO::addUserAPIHistory(int userID, int apiID)
@@ -329,12 +323,15 @@ void DAO::addUserAPIHistory(int userID, int apiID)
 
 void DAO::addUserQuestionHistory(int userID, int answerID)
 {
+    // find the question id associated with the answer
     QSqlQuery query;
     query.exec(tr("select QuestionID from QuestionAnswerRelations where AnswerID = %1")
                .arg(answerID));
     if(query.next())
     {
         int questionID = query.value(0).toInt();
+
+        // add user-clicked-answer history
         query.prepare("insert into UserQuestionHistory values (:userID, :questionID, :time)");
         query.bindValue(":userID",     userID);
         query.bindValue(":questionID", questionID);

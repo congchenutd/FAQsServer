@@ -93,8 +93,8 @@ void Server::doSave(const Parameters& params, QHttpResponse* res)
 void Server::doLogAPI(const Server::Parameters& params, QHttpResponse* res)
 {
     DAO::getInstance()->logAPI(params["username"],
-                            params["email"],
-                            params["api"]);
+                               params["email"],
+                               params["api"]);
 
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
@@ -103,9 +103,12 @@ void Server::doLogAPI(const Server::Parameters& params, QHttpResponse* res)
 
 void Server::doLogAnswer(const Server::Parameters& params, QHttpResponse* res)
 {
+    // link may contain reserved chars, such as & < > #
+    // they are pertentage encoded by the client
+    // convert them back to human readable chars
     DAO::getInstance()->logAnswer(params["username"],
-                            params["email"],
-                            QUrl::fromPercentEncoding(params["link"] .toUtf8()));
+                                  params["email"],
+                                  QUrl::fromPercentEncoding(params["link"] .toUtf8()));
 
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
@@ -120,5 +123,6 @@ void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
     res->write(json.toJson());   // to json file
+
     qDebug() << json.toJson();
 }
