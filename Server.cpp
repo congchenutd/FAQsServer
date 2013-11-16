@@ -132,8 +132,6 @@ void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
 void Server::doPersonalProfile(const Server::Parameters& params, QHttpResponse* res)
 {
     QJsonDocument json = DAO::getInstance()->personalProfile(params["username"]);
-    if(json.array().isEmpty())
-        return;
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
     res->write(json.toJson());   // to json file

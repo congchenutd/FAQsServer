@@ -512,7 +512,7 @@ QJsonDocument DAO::personalProfile(const QString& userName) const
     profileJson.insert("username", userName);
     query.exec(tr("select Email from Users where ID = %1").arg(userID));
     if(query.next())
-        prifileJson.insert("email", query.value(0).toString());
+        profileJson.insert("email", query.value(0).toString());
     profileJson.insert("apis", apisJson);
 
     return QJsonDocument(profileJson);
