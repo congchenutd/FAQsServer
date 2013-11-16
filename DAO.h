@@ -15,9 +15,10 @@ public:
 
     void save(const QString& userName, const QString& email, const QString& api,
               const QString& question, const QString& link,  const QString& title);
-    void logAPI  (const QString& userName, const QString& email, const QString& api);
+    void logAPI   (const QString& userName, const QString& email, const QString& api);
     void logAnswer(const QString& userName, const QString& email, const QString& link);
-    QJsonDocument query(const QString& classSignature);
+    QJsonDocument query(const QString& classSignature) const;
+    QJsonDocument personalProfile(const QString& userName) const;
 
 private slots:
     void onComparisonResult(const QString& leadQuestion,
@@ -44,8 +45,8 @@ private:
     // compare question with other lead questions associated with apiID
     void measureSimilarity(const QString& question, int apiID);
 
-    void addUserAPIHistory     (int userID, int apiID);     // user viewed API doc
-    void addUserQuestionHistory(int userID, int answerID);  // user clicked the answer
+    void addUserReadAPI     (int userID, int apiID);     // user viewed API doc
+    void addUserReadQuestion(int userID, int answerID);  // user clicked the answer
 
     QJsonObject createAnswerJson    (int answerID) const;
     QJsonObject createUserJson      (int userID)   const;

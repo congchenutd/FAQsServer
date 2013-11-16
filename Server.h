@@ -15,10 +15,11 @@ private slots:
 
 private:
     Parameters parseParameters(const QString& url) const;
-    void doPing     (const Parameters& params, QHttpResponse* res);
-    void doSave     (const Parameters& params, QHttpResponse* res);
-    void doLogAPI  (const Parameters& params, QHttpResponse* res);
-    void doLogAnswer(const Parameters& params, QHttpResponse* res);
-    void doQuery    (const Parameters& params, QHttpResponse* res);
+    void doPing           (const Parameters& params, QHttpResponse* res);
+    void doSave           (const Parameters& params, QHttpResponse* res);
+    void doLogAPI         (const Parameters& params, QHttpResponse* res);
+    void doLogAnswer      (const Parameters& params, QHttpResponse* res);
+    void doQuery          (const Parameters& params, QHttpResponse* res);
+    void doPersonalProfile(const Parameters& params, QHttpResponse* res);
 };
 

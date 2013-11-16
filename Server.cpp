@@ -25,7 +25,7 @@ void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
     if(!url.startsWith("/?action"))
     {
         res->writeHead(403);
-        res->end("Hello, this is FAQsServer. Please use FAQsBrowser to communicate with me.");
+        res->end("Hello, this is FAQ Server. Please use FAQ Browser to communicate with me.");
         return;
     }
 
@@ -44,6 +44,8 @@ void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
         doLogAnswer(params, res);
     else if(action == "query")
         doQuery(params, res);
+    else if(action == "personal")
+        doPersonalProfile(params, res);
 
     res->end();
 }
@@ -119,6 +121,18 @@ void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
 {
     QJsonDocument json = DAO::getInstance()->query(params["class"]);
     if(json.array().isEmpty())   // returned is a json array
+        return;
+    res->setHeader("Content-Type", "text/html");
+    res->writeHead(200);
+    res->write(json.toJson());   // to json file
+
+    qDebug() << json.toJson();
+}
+
+void Server::doPersonalProfile(const Server::Parameters& params, QHttpResponse* res)
+{
+    QJsonDocument json = DAO::getInstance()->personalProfile(params["username"]);
+    if(json.array().isEmpty())
         return;
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
