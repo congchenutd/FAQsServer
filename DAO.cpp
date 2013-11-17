@@ -27,8 +27,8 @@ DAO::DAO()
 
     QSqlQuery query;
     query.exec("create table APIs ( \
-               ID      int primary key, \
-               API     varchar unique not null)");    // lib;package.class.method
+               ID        int primary key, \
+               Signature varchar unique not null)");    // lib;package.class.method
     query.exec("create table Answers ( \
                ID    int primary key, \
                Link  varchar unique not null, \
@@ -82,8 +82,8 @@ int DAO::getNextID(const QString& tableName) const
 int DAO::getUserID(const QString& userName) const {
     return getID("Users", "Name", userName);
 }
-int DAO::getAPIID(const QString& api) const {
-    return getID("APIs", "API", api);
+int DAO::getAPIID(const QString& signature) const {
+    return getID("APIs", "Signature", signature);
 }
 int DAO::getQuestionID(const QString& question) const {
     return getID("Questions", "Question", question);
@@ -101,15 +101,15 @@ int DAO::getID(const QString& tableName, const QString& section, const QString& 
     return query.next() ? query.value(0).toInt() : -1;
 }
 
-void DAO::updateAPI(const QString& api)
+void DAO::updateAPI(const QString& signature)
 {
-    if(api.isEmpty() || getAPIID(api) >= 0)
+    if(signature.isEmpty() || getAPIID(signature) >= 0)
         return;
 
     QSqlQuery query;
-    query.prepare("insert into APIs values (:id, :api)");
+    query.prepare("insert into APIs values (:id, :sig)");
     query.bindValue(":id",  getNextID("APIs"));
-    query.bindValue(":api", api);
+    query.bindValue(":sig", signature);
     query.exec();
 }
 
@@ -276,14 +276,14 @@ void DAO::updateQuestionAnswerRelation(int groupID, int answerID)
                .arg(answerID));
 }
 
-void DAO::save(const QString& userName, const QString& email, const QString& api,
+void DAO::save(const QString& userName, const QString& email, const QString& apiSig,
                const QString& question, const QString& link,  const QString& title)
 {
     updateUser  (userName, email);
-    updateAPI   (api);
+    updateAPI   (apiSig);
     updateAnswer(link, title);
 
-    int apiID = getAPIID(api);
+    int apiID = getAPIID(apiSig);
     updateQuestion(question, apiID);
 
     int answerID   = getAnswerID  (link);
@@ -294,13 +294,13 @@ void DAO::save(const QString& userName, const QString& email, const QString& api
     updateQuestionAnswerRelation(questionID, answerID);
 }
 
-void DAO::logAPI(const QString& userName, const QString& email, const QString& api)
+void DAO::logAPI(const QString& userName, const QString& email, const QString& apiSig)
 {
-    qDebug() << "Log link: " << userName << email << api;
+    qDebug() << "Log link: " << userName << email << apiSig;
 
     updateUser(userName, email);
-    updateAPI (api);
-    addUserReadAPI(getUserID(userName), getAPIID(api));
+    updateAPI (apiSig);
+    addUserReadAPI(getUserID(userName), getAPIID(apiSig));
 }
 
 void DAO::logAnswer(const QString& userName, const QString& email, const QString& link)
@@ -367,19 +367,23 @@ QString DAO::getCurrentDateTime() const {
 //},
 //{...}
 //]
-QJsonDocument DAO::query(const QString& classSignature) const
+QJsonDocument DAO::query(const QString& classSig) const
 {
     QJsonArray apisJson;
     QSqlQuery query;
-    query.exec(tr("select ID, API from APIs where API like \'%1%\'").arg(classSignature));
+    query.exec(tr("select ID, Signature from APIs where Signature like \'%1%\'").arg(classSig));
     while(query.next())
     {
-        int     apiID = query.value(0).toInt();
-        QString api   = query.value(1).toString().section(";", -1, -1);  // remove library
-        QJsonObject apiJson;
-        apiJson.insert("api",       api);
-        apiJson.insert("questions", createQuestionsJason(apiID));
-        apisJson.append(apiJson);
+        int apiID = query.value(0).toInt();
+        QJsonArray questions = createQuestionsJason(apiID);
+        if(!questions.isEmpty())
+        {
+            QString apiSig = query.value(1).toString().section(";", -1, -1);  // remove library
+            QJsonObject apiJson;
+            apiJson.insert("apisig",    apiSig);
+            apiJson.insert("questions", questions);
+            apisJson.append(apiJson);
+        }
     }
 
     return QJsonDocument(apisJson);
@@ -473,7 +477,7 @@ QJsonArray DAO::createQuestionsJason(int apiID) const
                    where QuestionID = ID and Parent = -1 and APIID = %1").arg(apiID));
     while(query.next())
         result.append(createQuestionJason(query.value(0).toInt()));
-               return result;
+    return result;
 }
 
 QJsonDocument DAO::personalProfile(const QString& userName) const
@@ -488,7 +492,7 @@ QJsonDocument DAO::personalProfile(const QString& userName) const
     // 3. merge (union) 1 and 2
     // 4. get all the APIs associated with the questions
     QSqlQuery query;
-    query.exec(tr("select distinct ID, API from APIs, QuestionAboutAPI \
+    query.exec(tr("select distinct ID, Signature from APIs, QuestionAboutAPI \
                    where ID = APIID and QuestionID in ( \
                      select QuestionID from UserAskQuestion, Questions \
                        where QuestionID = ID and Parent = -1 and UserID = %1 \
@@ -500,16 +504,16 @@ QJsonDocument DAO::personalProfile(const QString& userName) const
     QJsonArray apisJson;
     while(query.next())
     {
-        int     apiID = query.value(0).toInt();
-        QString api   = query.value(1).toString().section(";", -1, -1);  // remove library
+        int     apiID  = query.value(0).toInt();
+        QString apiSig = query.value(1).toString().section(";", -1, -1);  // remove library
         QJsonObject apiJson;
-        apiJson.insert("api",       api);
+        apiJson.insert("apisig",    apiSig);
         apiJson.insert("questions", createQuestionsJason(apiID));
         apisJson.append(apiJson);
     }
 
     QJsonObject profileJson;
-    profileJson.insert("username", userName);
+    profileJson.insert("name", userName);
     query.exec(tr("select Email from Users where ID = %1").arg(userID));
     if(query.next())
         profileJson.insert("email", query.value(0).toString());

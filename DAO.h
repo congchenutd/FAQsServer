@@ -13,11 +13,11 @@ class DAO : public QObject
 public:
     static DAO* getInstance();
 
-    void save(const QString& userName, const QString& email, const QString& api,
+    void save(const QString& userName, const QString& email, const QString& apiSig,
               const QString& question, const QString& link,  const QString& title);
-    void logAPI   (const QString& userName, const QString& email, const QString& api);
+    void logAPI   (const QString& userName, const QString& email, const QString& apiSig);
     void logAnswer(const QString& userName, const QString& email, const QString& link);
-    QJsonDocument query(const QString& classSignature) const;
+    QJsonDocument query(const QString& classSig) const;
     QJsonDocument personalProfile(const QString& userName) const;
 
 private slots:
@@ -28,13 +28,13 @@ private:
     DAO();
     int getNextID    (const QString& tableName) const;
     int getUserID    (const QString& userName)  const;
-    int getAPIID     (const QString& api)       const;
+    int getAPIID     (const QString& signature) const;
     int getQuestionID(const QString& question)  const;
     int getAnswerID  (const QString& link)      const;
     int getID(const QString& tableName, const QString& section, const QString& value) const;
 
     void updateUser    (const QString& userName, const QString& email);
-    void updateAPI     (const QString& api);
+    void updateAPI     (const QString& signature);
     void updateQuestion(const QString& question, int apiID);
     void updateAnswer  (const QString& link, const QString& title);
     void updateQuestionUserRelation  (int groupID, int userID);

@@ -82,7 +82,7 @@ void Server::doSave(const Parameters& params, QHttpResponse* res)
     // convert them back to human readable chars
     DAO::getInstance()->save(params["username"],
                              params["email"],
-                             params["api"],
+                             params["apisig"],
                              params["question"],
                              QUrl::fromPercentEncoding(params["link"] .toUtf8()),
                              QUrl::fromPercentEncoding(params["title"].toUtf8()));
@@ -96,7 +96,7 @@ void Server::doLogAPI(const Server::Parameters& params, QHttpResponse* res)
 {
     DAO::getInstance()->logAPI(params["username"],
                                params["email"],
-                               params["api"]);
+                               params["apisig"]);
 
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
