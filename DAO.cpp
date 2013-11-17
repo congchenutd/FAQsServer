@@ -470,13 +470,13 @@ QJsonObject DAO::createQuestionJason(int leadID) const
 QJsonArray DAO::createQuestionsJason(int apiID) const
 {
     QJsonArray result;
-    QSqlQuery query;
 
     // find all lead questions
+    QSqlQuery query;
     query.exec(tr("select QuestionID from QuestionAboutAPI, Questions\
                    where QuestionID = ID and Parent = -1 and APIID = %1").arg(apiID));
     while(query.next())
-        result.append(createQuestionJason(query.value(0).toInt()));
+        result.append(createQuestionJason(query.value(0).toInt()));  // question json
     return result;
 }
 
@@ -486,38 +486,63 @@ QJsonDocument DAO::personalProfile(const QString& userName) const
     if(userID == -1)
         return QJsonDocument();
 
-    // get all the APIs userID has questions related to
+    // this person's profile
+    QJsonObject profileJson;
+    profileJson.insert("name", userName);
+    QSqlQuery query;
+    query.exec(tr("select Email from Users where ID = %1").arg(userID));
+    if(query.next())
+        profileJson.insert("email", query.value(0).toString());
+
+    // get all the questions userID relates to
     // 1. get all the lead questions asked  by userID
     // 2. get all the lead questions viewed by userID
     // 3. merge (union) 1 and 2
-    // 4. get all the APIs associated with the questions
-    QSqlQuery query;
+    query.exec(tr("select QuestionID from UserAskQuestion, Questions \
+                     where QuestionID = ID and Parent = -1 and UserID = %1 \
+                   union \
+                   select QuestionID from UserReadQuestion, Questions \
+                     where QuestionID = ID and Parent = -1 and UserID = %1 \
+                   order by QuestionID").arg(userID));
+    QStringList questions;
+    while(query.next())
+        questions << query.value(0).toString();
+
+    // get all the APIs associated with the questions
     query.exec(tr("select distinct ID, Signature from APIs, QuestionAboutAPI \
-                   where ID = APIID and QuestionID in ( \
-                     select QuestionID from UserAskQuestion, Questions \
-                       where QuestionID = ID and Parent = -1 and UserID = %1 \
-                     union \
-                     select QuestionID from UserReadQuestion, Questions \
-                       where QuestionID = ID and Parent = -1 and UserID = %1 \
-                     order by QuestionID)").arg(userID));
+                  where ID = APIID and QuestionID in (%1)").arg(questions.join(",")));
 
     QJsonArray apisJson;
     while(query.next())
     {
         int     apiID  = query.value(0).toInt();
         QString apiSig = query.value(1).toString().section(";", -1, -1);  // remove library
-        QJsonObject apiJson;
-        apiJson.insert("apisig",    apiSig);
-        apiJson.insert("questions", createQuestionsJason(apiID));
-        apisJson.append(apiJson);
+        QJsonObject apiJson;                                          // json for this api
+        apiJson.insert("apisig",    apiSig);                          // save api to json
+        apiJson.insert("questions", createQuestionsJason(apiID));     // save questions to json
+        apisJson.append(apiJson);                                     // add this json to api json array
     }
+    profileJson.insert("apis", apisJson);   // add apis
 
-    QJsonObject profileJson;
-    profileJson.insert("name", userName);
-    query.exec(tr("select Email from Users where ID = %1").arg(userID));
-    if(query.next())
-        profileJson.insert("email", query.value(0).toString());
-    profileJson.insert("apis", apisJson);
+    // get all other users associated with the questions
+    query.exec(tr("select Name, Email from UserAskQuestion, Users \
+                     where QuestionID in (%1) and UserID = ID and UserID != %2 \
+                   union \
+                   select Name, Email from UserReadQuestion, Users \
+                     where QuestionID in (%1) and UserID = ID and UserID != %2")
+               .arg(questions.join(",")).arg(userID));
+
+    QJsonArray usersJson;
+    while(query.next())
+    {
+        QString name  = query.value(0).toString();
+        QString email = query.value(1).toString();
+        QJsonObject userJson;             // json for this user
+        userJson.insert("name",  name);
+        userJson.insert("email", email);
+        usersJson.append(userJson);       // add this json to users json array
+    }
+    profileJson.insert("relatedusers", usersJson);   // add related users
 
     return QJsonDocument(profileJson);
 }
