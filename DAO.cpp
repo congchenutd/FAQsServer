@@ -9,6 +9,7 @@
 #include <QDebug>
 #include <QStringList>
 #include <QDateTime>
+#include <QSettings>
 
 DAO* DAO::_instance = 0;
 
@@ -79,18 +80,6 @@ int DAO::getNextID(const QString& tableName) const
     return query.next() ? query.value(0).toInt() + 1 : 0;
 }
 
-int DAO::getUserID(const QString& userName) const {
-    return getID("Users", "Name", userName);
-}
-int DAO::getAPIID(const QString& signature) const {
-    return getID("APIs", "Signature", signature);
-}
-int DAO::getQuestionID(const QString& question) const {
-    return getID("Questions", "Question", question);
-}
-int DAO::getAnswerID(const QString& link) const {
-    return getID("Answers", "Link", link);
-}
 int DAO::getID(const QString& tableName, const QString& section, const QString& value) const
 {
     QSqlQuery query;
@@ -100,6 +89,10 @@ int DAO::getID(const QString& tableName, const QString& section, const QString& 
     query.exec();
     return query.next() ? query.value(0).toInt() : -1;
 }
+int DAO::getUserID    (const QString& userName)  const { return getID("Users",     "Name",      userName); }
+int DAO::getAPIID     (const QString& signature) const { return getID("APIs",      "Signature", signature); }
+int DAO::getQuestionID(const QString& question)  const { return getID("Questions", "Question",  question); }
+int DAO::getAnswerID  (const QString& link)      const { return getID("Answers",   "Link",      link); }
 
 void DAO::updateAPI(const QString& signature)
 {
@@ -118,6 +111,7 @@ void DAO::updateUser(const QString& userName, const QString& email)
     if(userName.isEmpty())
         return;
 
+    // update existing user or insert a new one
     QSqlQuery query;
     int id = getUserID(userName);
     if(id > 0) {
@@ -155,27 +149,30 @@ void DAO::updateQuestion(const QString& question, int apiID)
     query.bindValue(":question", question);
     query.exec();
 
-    measureSimilarity(question, apiID);
+    measureSimilarity(question, apiID);  // initiate measure
 }
 
 void DAO::measureSimilarity(const QString& question, int apiID)
 {
-    // find the lead questions the api has
+    // find the lead questions the API has
     QSqlQuery query;
     query.exec(tr("select Question from QuestionAboutAPI, Questions\
                    where APIID = %1 and QuestionID = ID and Parent = -1").arg(apiID));
 
     // compare this question with each lead question
     while(query.next())
-            _comparer->compare(query.value(0).toString(), question);
+        _comparer->compare(query.value(0).toString(), question);
 }
 
 void DAO::onComparisonResult(const QString& leadQuestion,
                              const QString& question, qreal similarity)
 {
-    if(similarity <= 0.75)
+    QSettings settings("FAQServer.ini", QSettings::IniFormat);
+    double threshold = qMax(settings.value("SimilarityThreshold").toDouble(), 0.5);
+    if(similarity <= threshold)
         return;
 
+    // set lead question to be the parent of question if similar
     QSqlQuery query;
     query.exec(tr("update Questions set Parent = %1 where ID = %2")
                .arg(getQuestionID(leadQuestion))
@@ -184,7 +181,7 @@ void DAO::onComparisonResult(const QString& leadQuestion,
 
 void DAO::updateLead(int questionID)
 {
-    // get lead id
+    // get lead id and my ask count
     QSqlQuery query;
     query.exec(tr("select Parent, AskCount from Questions where ID = %1 and Parent <> -1")
                .arg(questionID));
@@ -192,12 +189,13 @@ void DAO::updateLead(int questionID)
         return;
 
     int leadID    = query.value(0).toInt();
-    int thisCount = query.value(1).toInt();
+    int thisCount = query.value(1).toInt();   // my ask count
 
-    // the lead count
+    // ask count of the lead question
     query.exec(tr("select AskCount from Questions where ID = %1").arg(leadID));
     int leadCount = query.next() ? query.value(0).toInt() : 0;
 
+    // cannot beat lead
     if(thisCount <= leadCount)
         return;
 
@@ -219,6 +217,7 @@ void DAO::updateAnswer(const QString& link, const QString& title)
     if(link.isEmpty())
         return;
 
+    // update existing answer or insert a new one
     QSqlQuery query;
     int id = getAnswerID(link);
     if(id > 0) {
@@ -372,10 +371,12 @@ QJsonDocument DAO::query(const QString& classSig) const
     QJsonArray apisJson;
     QSqlQuery query;
     query.exec(tr("select ID, Signature from APIs where Signature like \'%1%\'").arg(classSig));
+
+    // for all the classes
     while(query.next())
     {
         int apiID = query.value(0).toInt();
-        QJsonArray questions = createQuestionsJason(apiID);
+        QJsonArray questions = createQuestionsJason(apiID);  // questions about this API
         if(!questions.isEmpty())
         {
             QString apiSig = query.value(1).toString().section(";", -1, -1);  // remove library
