@@ -16,15 +16,7 @@ void SimilarityComparer::compare(const QString& leadQuestion, const QString& que
     QString sentence1 = leadQuestion.simplified();
     QString sentence2 = question    .simplified();
 
-    MyNetworkAccessManager* manager = new MyNetworkAccessManager(this);
-    int i;
-    for(i = 0; i < qMin(sentence1.length(), sentence2.length()); ++i)
-        if(sentence1.at(i) != sentence2.at(i))
-            break;
-    manager->setPrefix(sentence1.left(i));
-    sentence1.remove(0, i);
-    sentence2.remove(0, i);
-
+    QNetworkAccessManager* manager = new QNetworkAccessManager(this);
     connect(manager, SIGNAL(finished(QNetworkReply*)), this,    SLOT(onReply(QNetworkReply*)));
     connect(manager, SIGNAL(finished(QNetworkReply*)), manager, SLOT(deleteLater()));
 
@@ -36,20 +28,11 @@ void SimilarityComparer::compare(const QString& leadQuestion, const QString& que
 
 void SimilarityComparer::onReply(QNetworkReply* reply)
 {
-    if(MyNetworkAccessManager* manager = qobject_cast<MyNetworkAccessManager*>(sender()))
-    {
-        QString prefix = manager->getPrefix();
-        QString value = reply->readAll();
-        QString query = reply->request().url().query();
-        QStringList sections = query.split("&");
-        if(sections.size() == 3)
-            emit comparisonResult(prefix+sections[1].remove("phrase1="),
-                                  prefix+sections[2].remove("phrase2="),
-                                  value.toDouble());
-    }
+    QString value = reply->readAll();
+    QString query = reply->request().url().query();  // the query associated with the reply
+    QStringList sections = query.split("&");
+    if(sections.size() == 3)
+        emit comparisonResult(sections[1].remove("phrase1="),
+                              sections[2].remove("phrase2="),
+                              value.toDouble());
 }
-
-
-///////////////////////////////////////////////////////////////////////////
-MyNetworkAccessManager::MyNetworkAccessManager(QObject* parent)
-    : QNetworkAccessManager(parent) {}

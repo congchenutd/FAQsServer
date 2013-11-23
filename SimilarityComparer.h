@@ -22,20 +22,4 @@ signals:
 };
 
 
-#include <QNetworkAccessManager>
-
-class MyNetworkAccessManager : public QNetworkAccessManager
-{
-    Q_OBJECT
-
-public:
-    MyNetworkAccessManager(QObject* parent);
-    QString getPrefix() const { return _prefix; }
-    void    setPrefix(const QString& prefix) { _prefix = prefix; }
-
-private:
-    QString _prefix;  // common prefix of two sentences under comparison
-};
-
-
 #endif // SIMILARITYCOMPARER_H
