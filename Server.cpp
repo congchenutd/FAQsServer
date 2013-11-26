@@ -9,6 +9,7 @@
 #include <qhttpserver.h>
 #include <qhttprequest.h>
 #include <qhttpresponse.h>
+#include <QFile>
 
 Server::Server()
 {
@@ -46,8 +47,12 @@ void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
         doQuery(params, res);
     else if(action == "personal")
         doPersonalProfile(params, res);
-
-    res->end();
+    else if(action == "submitphoto")
+    {
+        doSubmitPhoto(params, res);
+        connect(req, SIGNAL(end()), this, SLOT(onPhotoDone()));
+        req->storeBody();
+    }
 }
 
 Server::Parameters Server::parseParameters(const QString& url) const
@@ -73,6 +78,7 @@ void Server::doPing(const Parameters& params, QHttpResponse* res)
     res->writeHead(200);
     QString userName = params.contains("username") ? params["username"] : "anonymous";
     res->write(tr("Hello %1, I'm alive!").arg(userName).toUtf8());
+    res->end();
 }
 
 void Server::doSave(const Parameters& params, QHttpResponse* res)
@@ -90,6 +96,7 @@ void Server::doSave(const Parameters& params, QHttpResponse* res)
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
     res->write(tr("Your FAQ is saved").toUtf8());
+    res->end();
 }
 
 void Server::doLogAPI(const Server::Parameters& params, QHttpResponse* res)
@@ -101,6 +108,7 @@ void Server::doLogAPI(const Server::Parameters& params, QHttpResponse* res)
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
     res->write(tr("Your API is logged").toUtf8());
+    res->end();
 }
 
 void Server::doLogAnswer(const Server::Parameters& params, QHttpResponse* res)
@@ -115,6 +123,7 @@ void Server::doLogAnswer(const Server::Parameters& params, QHttpResponse* res)
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
     res->write(tr("Your Answer is logged").toUtf8());
+    res->end();
 }
 
 void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
@@ -125,6 +134,7 @@ void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
     res->write(json.toJson());   // to json file
+    res->end();
 
     qDebug() << json.toJson();
 }
@@ -135,6 +145,22 @@ void Server::doPersonalProfile(const Server::Parameters& params, QHttpResponse* 
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
     res->write(json.toJson());   // to json file
+    res->end();
 
     qDebug() << json.toJson();
+}
+
+void Server::doSubmitPhoto(const Server::Parameters& params, QHttpResponse* res)
+{
+    _photoUser = params["username"];
+    res->writeHead(200);
+    res->write("Accepting photo ...");
+}
+
+void Server::onPhotoDone()
+{
+    QHttpRequest* req = static_cast<QHttpRequest*>(sender());
+    QFile file(_photoUser + ".png");
+    if(file.open(QFile::WriteOnly))
+        file.write(req->body());
 }
