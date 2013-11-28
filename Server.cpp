@@ -1,8 +1,10 @@
 #include "Server.h"
 #include "DAO.h"
+#include "SnippetCreator.h"
 #include <QStringList>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QUrl>
 #include <QDebug>
 
@@ -51,7 +53,7 @@ void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
     {
         doSubmitPhoto(params, res);
         connect(req, SIGNAL(end()), this, SLOT(onPhotoDone()));
-        req->storeBody();
+        req->storeBody();  // the request object will store the data internally
     }
 }
 
@@ -133,7 +135,7 @@ void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
         return;
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
-    res->write(json.toJson());   // to json file
+    res->write(SnippetCreator().createFAQs(json.array()).toJson());
     res->end();
 
     qDebug() << json.toJson();
@@ -144,7 +146,7 @@ void Server::doPersonalProfile(const Server::Parameters& params, QHttpResponse* 
     QJsonDocument json = DAO::getInstance()->personalProfile(params["username"]);
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
-    res->write(json.toJson());   // to json file
+    res->write(SnippetCreator().createProfilePage(json.object()));
     res->end();
 
     qDebug() << json.toJson();
@@ -155,6 +157,7 @@ void Server::doSubmitPhoto(const Server::Parameters& params, QHttpResponse* res)
     _photoUser = params["username"];
     res->writeHead(200);
     res->write("Accepting photo ...");
+    // do not call res->end(), because the photo transfer is not finished
 }
 
 void Server::onPhotoDone()

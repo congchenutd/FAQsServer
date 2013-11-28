@@ -343,7 +343,7 @@ QString DAO::getCurrentDateTime() const {
     return QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
 }
 
-// An example of returned JSON file:
+// An example of returned JSON array:
 //[
 //{
 //	"api": "java.util.ArrayList.ensureCapacity",
