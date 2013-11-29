@@ -1,41 +1,42 @@
 #include "SnippetCreator.h"
 #include "Template.h"
+#include "Settings.h"
+
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QTextStream>
 #include <QDebug>
 
-//[
 //{
-//	"api": "java.util.ArrayList.ensureCapacity",
-//	"questions":
-//	[
-//		{
-//			"question": "question1",
-//			"users"   : [{"username": "user1", "email": "user1@gmai.com"},
-//						 {"username": "user2", "email": "user2@gmail.com"}],
-//			"answers" : [{"link": "link1", "title": "title1"},
-//						 {"link": "link2", "title": "title2"}]
-//		},
-//		{
-//			"question": "question2",
-//			"users"   : [{"username": "user1", "email": "user1@gmai.com"},
-//						 {"username": "user2", "email": "user2@gmail.com"}],
-//			"answers" : []
-//		},
-//	]
+//    "style": "link of the stylesheet"
+//    "apis": [{
+//                "api": "java.util.ArrayList.ensureCapacity",
+//                "questions":
+//                [{
+//                    "question": "question1",
+//                    "users"   : [{"username": "user1", "email": "user1@gmai.com"},
+//                                 {"username": "user2", "email": "user2@gmail.com"}],
+//                    "answers" : [{"link": "link1", "title": "title1"},
+//                                 {"link": "link2", "title": "title2"}]
+//                }]
+//            }]
 //}
-//]
-//
-//[
+
 //{
-//	"api": "java.util.ArrayList.ensureCapacity",
-//	"html": "..."
+//    "style": "link of the stylesheet"
+//    "apis": [{
+//                "api": "java.util.ArrayList.ensureCapacity",
+//                "html": "..."
+//            }]
 //}
-//]
 QJsonDocument SnippetCreator::createFAQs(const QJsonArray& jaAPIs) const
 {
+    QJsonObject joDocPage;
+    Settings* settings = Settings::getInstance();
+    joDocPage.insert("style", QObject::tr("http://%1:%2/Templates/faqs.css")
+                                        .arg(settings->getServerIP())
+                                        .arg(settings->getServerPort()));
     QJsonArray jaFAQs;
     for(QJsonArray::ConstIterator it = jaAPIs.begin(); it != jaAPIs.end(); ++it)
     {
@@ -45,7 +46,9 @@ QJsonDocument SnippetCreator::createFAQs(const QJsonArray& jaAPIs) const
         joFAQ.insert("html",   QString(createFAQ(joAPI)));
         jaFAQs.append(joFAQ);
     }
-    return QJsonDocument(jaFAQs);
+
+    joDocPage.insert("apis", jaFAQs);
+    return QJsonDocument(joDocPage);
 }
 
 QByteArray SnippetCreator::createFAQ(const QJsonObject& joAPI) const
@@ -89,6 +92,8 @@ QByteArray SnippetCreator::createQuestions(const QJsonObject& joAPI) const
     QJsonArray jaQuestions = joAPI.value("questions").toArray();
     Template tQuestions("./Templates/Questions.html");
 
+    tQuestions.setValue("StyleSheet", "http://localhost:8080/Templates/FAQs.css");
+
     // for each question
     for(QJsonArray::Iterator itq = jaQuestions.begin(); itq != jaQuestions.end(); ++itq)
     {
@@ -102,9 +107,9 @@ QByteArray SnippetCreator::createQuestions(const QJsonObject& joAPI) const
         for(QJsonArray::Iterator itu = users.begin(); itu != users.end(); ++itu)
         {
             QJsonObject joUser = (*itu).toObject();
-            Template tUser("./Templates/User.html");
-            tUser.setValue("Name", joUser.value("name").toString());  // format user
-            tQuestion.addValue("User", tUser.toHTML());               // add to the question
+            Template tInterestedUser("./Templates/InterestedUser.html");
+            tInterestedUser.setValue("User", createUser(joUser));
+            tQuestion.addValue("InterestedUser", tInterestedUser.toHTML());
         }
 
         // answers
@@ -138,30 +143,35 @@ QByteArray SnippetCreator::createQuestions(const QJsonObject& joAPI) const
 QByteArray SnippetCreator::createProfilePage(const QJsonObject& joProfile) const
 {
     Template tProfilePage("./Templates/ProfilePage.html");
+    if(!tProfilePage.isLoaded())
+        return "Template not loaded!";
+
+    Settings* settings = Settings::getInstance();
+    tProfilePage.setValue("StyleSheet", QObject::tr("http://%1:%2/Templates/ProfilePage.css")
+                                            .arg(settings->getServerIP())
+                                            .arg(settings->getServerPort()));
+
     QString name = joProfile.value("name").toString();
     tProfilePage.setValue("Name",           name);
-    tProfilePage.setValue("Profile",        createProfile     (joProfile));
-    tProfilePage.setValue("InterestedAPIs", createAPIs        (joProfile));
-    tProfilePage.setValue("RelatedUsers",   createRelatedUsers(joProfile));
-
-    qDebug() << tProfilePage.toHTML();
-
+    tProfilePage.setValue("ProfileSection", createProfileSection(joProfile));
+    tProfilePage.setValue("InterestedAPIs", createInterestedAPIs(joProfile));
+    tProfilePage.setValue("RelatedUsers",   createRelatedUsers  (joProfile));
     return tProfilePage.toHTML();
 }
 
-QByteArray SnippetCreator::createProfile(const QJsonObject& joProfile) const
+QByteArray SnippetCreator::createProfileSection(const QJsonObject& joProfile) const
 {
-    QString name  = joProfile.value("name").toString();
+    QString name  = joProfile.value("name") .toString();
     QString email = joProfile.value("email").toString();
-    Template tProfile("./Templates/Profile.html");
+    Template tProfile("./Templates/ProfileSection.html");
     tProfile.setValue("Name",  name);
     tProfile.setValue("Email", email);
     return tProfile.toHTML();
 }
 
-QByteArray SnippetCreator::createAPIs(const QJsonObject& joProfile) const
+QByteArray SnippetCreator::createInterestedAPIs(const QJsonObject& joProfile) const
 {
-    Template tAPIs("./Templates/APIs.html");
+    Template tAPIs("./Templates/InterestedAPIs.html");
     QJsonArray jaAPIs = joProfile.value("apis").toArray();
     for(QJsonArray::Iterator it = jaAPIs.begin(); it != jaAPIs.end(); ++it)
     {
@@ -184,10 +194,26 @@ QByteArray SnippetCreator::createRelatedUsers(const QJsonObject& joProfile) cons
     for(QJsonArray::Iterator it = jaUsers.begin(); it != jaUsers.end(); ++it)
     {
         QJsonObject joUser = (*it).toObject();
-        Template userTemp("./Templates/RelatedUser.html");
-        userTemp.setValue("Name", joUser.value("name").toString());
-
-        tUsers.addValue("RelatedUser", userTemp.toHTML());
+        Template tRelatedUser("./Templates/RelatedUser.html");
+        tRelatedUser.setValue("User", createUser(joUser));
+        tUsers.addValue("RelatedUser", tRelatedUser.toHTML());
     }
     return tUsers.toHTML();
+}
+
+QByteArray SnippetCreator::createUser(const QJsonObject& joUser) const
+{
+    QString userName = joUser.value("name").toString();
+    Template tUser("./Templates/User.html");
+    tUser.setValue("Name", userName);
+
+    Settings* settings = Settings::getInstance();
+    tUser.setValue("Photo", QObject::tr("http://%1:%2/Photos/%3.png")
+                                    .arg(settings->getServerIP())
+                                    .arg(settings->getServerPort())
+                                    .arg(userName));
+    tUser.setValue("StyleSheet", QObject::tr("http://%1:%2/Templates/Thumbnail.css")
+                                            .arg(settings->getServerIP())
+                                            .arg(settings->getServerPort()));
+    return tUser.toHTML();
 }

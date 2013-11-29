@@ -1,6 +1,8 @@
 #include "Server.h"
 #include "DAO.h"
 #include "SnippetCreator.h"
+#include "Settings.h"
+
 #include <QStringList>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -12,6 +14,7 @@
 #include <qhttprequest.h>
 #include <qhttpresponse.h>
 #include <QFile>
+#include <QDir>
 
 Server::Server()
 {
@@ -19,7 +22,9 @@ Server::Server()
     connect(server, SIGNAL(newRequest(QHttpRequest*, QHttpResponse*)),
             this,   SLOT  (onRequest (QHttpRequest*, QHttpResponse*)));
             
-    server->listen(QHostAddress::Any, 8080);
+    Settings* settings = Settings::getInstance();
+    server->listen(QHostAddress(settings->getServerIP()),
+                   settings->getServerPort());
 }
 
 void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
@@ -27,12 +32,9 @@ void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
     QString url = req->url().toString();
     if(!url.startsWith("/?action"))
     {
-        res->writeHead(403);
-        res->end("Hello, this is FAQ Server. Please use FAQ Browser to communicate with me.");
+        getStatic(url, res);
         return;
     }
-
-    qDebug() << url;
 
     url.remove(0, 2);  // remove "/?"
     Parameters params = parseParameters(url);
@@ -137,8 +139,6 @@ void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
     res->writeHead(200);
     res->write(SnippetCreator().createFAQs(json.array()).toJson());
     res->end();
-
-    qDebug() << json.toJson();
 }
 
 void Server::doPersonalProfile(const Server::Parameters& params, QHttpResponse* res)
@@ -149,7 +149,7 @@ void Server::doPersonalProfile(const Server::Parameters& params, QHttpResponse* 
     res->write(SnippetCreator().createProfilePage(json.object()));
     res->end();
 
-    qDebug() << json.toJson();
+    qDebug() << SnippetCreator().createProfilePage(json.object());
 }
 
 void Server::doSubmitPhoto(const Server::Parameters& params, QHttpResponse* res)
@@ -163,7 +163,22 @@ void Server::doSubmitPhoto(const Server::Parameters& params, QHttpResponse* res)
 void Server::onPhotoDone()
 {
     QHttpRequest* req = static_cast<QHttpRequest*>(sender());
-    QFile file(_photoUser + ".png");
+    QDir::current().mkdir("Photos");
+    QFile file("./Photos/" + _photoUser + ".png");
     if(file.open(QFile::WriteOnly))
         file.write(req->body());
+}
+
+void Server::getStatic(const QString& url, QHttpResponse* res)
+{
+    QFile file("." + url);
+    if(file.open(QFile::ReadOnly))
+    {
+        res->writeHead(200);
+        res->write(file.readAll());
+    }
+    else {
+        res->writeHead(404);
+    }
+    res->end();
 }

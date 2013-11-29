@@ -23,6 +23,7 @@ private:
     void doQuery          (const Parameters& params, QHttpResponse* res);
     void doPersonalProfile(const Parameters& params, QHttpResponse* res);
     void doSubmitPhoto    (const Parameters& params, QHttpResponse* res);
+    void getStatic        (const QString& url, QHttpResponse* res);
 
 private:
     QString _photoUser;

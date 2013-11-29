@@ -1,5 +1,7 @@
 #include "DAO.h"
 #include "SimilarityComparer.h"
+#include "Settings.h"
+
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QVariant>
@@ -167,8 +169,7 @@ void DAO::measureSimilarity(const QString& question, int apiID)
 void DAO::onComparisonResult(const QString& leadQuestion,
                              const QString& question, qreal similarity)
 {
-    QSettings settings("FAQServer.ini", QSettings::IniFormat);
-    double threshold = qMax(settings.value("SimilarityThreshold").toDouble(), 0.5);
+    double threshold = qMax(Settings::getInstance()->getThreshold(), 0.5);
     if(similarity <= threshold)
         return;
 

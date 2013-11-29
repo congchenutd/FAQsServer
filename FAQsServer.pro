@@ -24,10 +24,12 @@ SOURCES = \
     SimilarityComparer.cpp \
     Main.cpp \
     Template.cpp \
-    SnippetCreator.cpp
+    SnippetCreator.cpp \
+    Settings.cpp
 HEADERS = \
     Server.h \
     DAO.h \
     SimilarityComparer.h \
     Template.h \
-    SnippetCreator.h
+    SnippetCreator.h \
+    Settings.h

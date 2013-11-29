@@ -1,0 +1,24 @@
+﻿.thumbnail {
+	position: relative;
+	z-index: 0;
+}
+.thumbnail:hover {
+	z-index: 50;
+}
+.popup {
+	position: absolute;
+	background-color: lightyellow;
+	padding: 5px;
+	border: 1px dashed gray;
+	visibility: hidden;
+	color: black;
+}
+.popup img {
+	border-width: 0;
+	padding: 2px;
+}
+.thumbnail:hover .popup {
+	visibility: visible;
+	top: -50;
+	left: 10px;
+}

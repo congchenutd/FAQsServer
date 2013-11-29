@@ -11,9 +11,11 @@ public:
     void addValue(const QString& attribute, const QString& value);  // for repetitive attributes
     void setValue(const QString& attribute, const QString& value);  // replace once
     QByteArray toHTML() const;
+    bool isLoaded() const { return _loaded; }
 
 private:
-    QString html;
+    QString _html;
+    bool    _loaded;
 };
 
 #endif // TEMPLATE_H

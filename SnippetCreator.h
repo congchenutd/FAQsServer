@@ -10,15 +10,16 @@ class QJsonDocument;
 class SnippetCreator
 {
 public:
-    QJsonDocument createFAQs       (const QJsonArray&  jaAPIs)    const;
-    QByteArray    createFAQ        (const QJsonObject& joAPI)     const;
+    QJsonDocument createFAQs       (const QJsonArray&  jaAPIs)    const;  // for query
     QByteArray    createProfilePage(const QJsonObject& joProfile) const;
 
 private:
-    QByteArray createQuestions   (const QJsonObject& joAPI)     const;
-    QByteArray createProfile     (const QJsonObject& joProfile) const;
-    QByteArray createAPIs        (const QJsonObject& joProfile) const;
-    QByteArray createRelatedUsers(const QJsonObject& joProfile) const;
+    QByteArray createFAQ           (const QJsonObject& joAPI)     const;
+    QByteArray createQuestions     (const QJsonObject& joAPI)     const;
+    QByteArray createProfileSection(const QJsonObject& joProfile) const;
+    QByteArray createInterestedAPIs(const QJsonObject& joProfile) const;
+    QByteArray createRelatedUsers  (const QJsonObject& joProfile) const;
+    QByteArray createUser          (const QJsonObject& joUser)    const;
 };
 
 #endif // HTMLCREATOR_H
