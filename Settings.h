@@ -3,7 +3,7 @@
 
 #include <QSettings>
 
-// 配置信息，保存在FAQServer.ini文件
+// 配置信息，保存在FAQsServer.ini文件
 class Settings : public QSettings
 {
 public:

@@ -13,7 +13,7 @@ QString Settings::getServerIP()   const { return value("IP")       .toString(); 
 uint    Settings::getServerPort() const { return value("Port")     .toInt();    }
 
 Settings::Settings()
-    : QSettings("FAQServer.ini", QSettings::IniFormat)
+    : QSettings("FAQsServer.ini", QSettings::IniFormat)
 {}
 
 Settings* Settings::_instance = 0;
