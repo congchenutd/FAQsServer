@@ -6,6 +6,7 @@
 class QJsonDocument;
 class SimilarityComparer;
 
+// 读写数据库的DAO
 class DAO : public QObject
 {
     Q_OBJECT

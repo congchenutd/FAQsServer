@@ -1,5 +1,6 @@
 #include "Settings.h"
 
+// Singleton方法
 Settings* Settings::getInstance()
 {
     if(_instance == 0)

@@ -9,9 +9,13 @@
 SimilarityComparer::SimilarityComparer(QObject* parent) :
     QObject(parent) {}
 
+// 请求计算两个句子的语义相似度
+// leadQuestion的意思是，如果很多句子的语义都相近，则把他们分在一个组中，选择其中一个作为代表，这个代表就是leadQuestion
+// 更好的方案是采用聚类，但是聚类需要比对大量的句子，所以最好是在本地实现语义相似度的量度，否则太慢
 void SimilarityComparer::compare(const QString& leadQuestion, const QString& question)
 {
-    // find common prefix of two sentences and remove it
+    // 这部分好像还没实现：应该把两个句子字面上完全相同的部分删除，否则比对出来的相似度会比实际偏高
+    // TODO: find common prefix of two sentences and remove it
     // otherwise, the common prefix may make the sentences very similar
     QString sentence1 = leadQuestion.simplified();
     QString sentence2 = question    .simplified();
@@ -26,6 +30,7 @@ void SimilarityComparer::compare(const QString& leadQuestion, const QString& que
     manager->get(QNetworkRequest(QUrl(url)));
 }
 
+// 分析UMBC服务返回的相似度结果，并将其以comparisonResult信号发送
 void SimilarityComparer::onReply(QNetworkReply* reply)
 {
     QString value = reply->readAll();

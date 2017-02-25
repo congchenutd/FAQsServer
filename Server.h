@@ -2,6 +2,7 @@
 
 #include <QObject>
 
+// 一个Web服务器
 class Server : public QObject
 {
     Q_OBJECT
