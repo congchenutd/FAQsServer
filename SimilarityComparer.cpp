@@ -1,4 +1,4 @@
-#include "SimilarityComparer.h"
+﻿#include "SimilarityComparer.h"
 #include <QNetworkAccessManager>
 #include <QUrl>
 #include <QNetworkRequest>

@@ -1,4 +1,4 @@
-#ifndef TEMPLATE_H
+﻿#ifndef TEMPLATE_H
 #define TEMPLATE_H
 
 #include <QString>

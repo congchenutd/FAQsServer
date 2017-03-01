@@ -1,4 +1,4 @@
-#include "qhttpserverfwd.h"
+﻿#include "qhttpserverfwd.h"
 
 #include <QObject>
 

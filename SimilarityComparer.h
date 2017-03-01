@@ -1,4 +1,4 @@
-#ifndef SIMILARITYCOMPARER_H
+﻿#ifndef SIMILARITYCOMPARER_H
 #define SIMILARITYCOMPARER_H
 
 #include <QObject>
