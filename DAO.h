@@ -1,4 +1,4 @@
-#ifndef DAO_H
+﻿#ifndef DAO_H
 #define DAO_H
 
 #include <QObject>
@@ -19,16 +19,16 @@ public:
               const QString& question, const QString& link,  const QString& title);
 
     // log API reading history
-    void logAPI   (const QString& userName, const QString& email, const QString& apiSig);
+    void logAPIDocumentReading(const QString& userName, const QString& email, const QString& apiSig);
 
     // log answer clicking history
-    void logAnswer(const QString& userName, const QString& email, const QString& link);
+    void logAnswerClicking(const QString& userName, const QString& email, const QString& link);
 
-    // query FAQ for an API (class)
-    QJsonDocument query(const QString& classSig) const;
+    // query FAQs for an API (class)
+    QJsonDocument queryFAQs(const QString& classSig) const;
 
     // query personal profile
-    QJsonDocument personalProfile(const QString& userName) const;
+    QJsonDocument queryUserProfile(const QString& userName) const;
 
 private slots:
     void onComparisonResult(const QString& leadQuestion,
@@ -58,8 +58,8 @@ private:
     // initiate comparison between the question and other lead questions associated with apiID
     void measureSimilarity(const QString& question, int apiID);
 
-    void addUserReadAPI     (int userID, int apiID);     // user viewed API doc
-    void addUserReadQuestion(int userID, int answerID);  // user clicked the answer
+    void addUserReadDocument(int userID, int apiID);     // user viewed API doc
+    void addUserClickAnswer (int userID, int answerID);  // user clicked the answer
 
     // table -> json
     QJsonObject createAnswerJson    (int answerID) const;  // an answer -> json

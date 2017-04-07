@@ -6,7 +6,7 @@
 class Server : public QObject
 {
     Q_OBJECT
-    typedef QMap<QString, QString> Parameters;   // e.g., username=Carl
+    typedef QMap<QString, QString> Parameters;   // parameter name -> parameter value, e.g., username=Carl
 
 public:
     Server();
@@ -17,14 +17,14 @@ private slots:
 
 private:
     Parameters parseParameters(const QString& url) const;
-    void doPing           (const Parameters& params, QHttpResponse* res);
-    void doSave           (const Parameters& params, QHttpResponse* res);
-    void doLogAPI         (const Parameters& params, QHttpResponse* res);
-    void doLogAnswer      (const Parameters& params, QHttpResponse* res);
-    void doQuery          (const Parameters& params, QHttpResponse* res);
-    void doPersonalProfile(const Parameters& params, QHttpResponse* res);
-    void doSubmitPhoto    (const Parameters& params, QHttpResponse* res);
-    void getStatic        (const QString& url, QHttpResponse* res);
+    void processPingRequest                 (const Parameters& params, QHttpResponse* res);
+    void processSaveRequest                 (const Parameters& params, QHttpResponse* res);
+    void processLogDocumentReadingRequest   (const Parameters& params, QHttpResponse* res);
+    void processLogAnswerClickingRequest    (const Parameters& params, QHttpResponse* res);
+    void processQueryRequest                (const Parameters& params, QHttpResponse* res);
+    void processQueryUserProfileRequest     (const Parameters& params, QHttpResponse* res);
+    void processSubmitPhotoRequest          (const Parameters& params, QHttpResponse* res);
+    void processStaticResourceRequest(const QString& url, QHttpResponse* res);
 
 private:
     QString _photoUser;

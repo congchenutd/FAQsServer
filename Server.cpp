@@ -1,4 +1,4 @@
-#include "Server.h"
+﻿#include "Server.h"
 #include "DAO.h"
 #include "SnippetCreator.h"
 #include "Settings.h"
@@ -27,38 +27,49 @@ Server::Server()
                    settings->getServerPort());
 }
 
+/**
+ * Process HTTP request
+ * @param req   - the request
+ * @param res   - response object
+ */
 void Server::onRequest(QHttpRequest* req, QHttpResponse* res)
 {
     QString url = req->url().toString();
     if(!url.startsWith("/?action"))
     {
-        getStatic(url, res);
+        processStaticResourceRequest(url, res);
         return;
     }
 
     url.remove(0, 2);  // remove "/?"
-    Parameters params = parseParameters(url);
+    Parameters params = parseParameters(url);   // parameters in the request
     QString action = params["action"];
     if(action == "ping")
-        doPing(params, res);
+        processPingRequest(params, res);
     else if(action == "save")
-        doSave(params, res);
+        processSaveRequest(params, res);
     else if(action == "logapi")
-        doLogAPI(params, res);
+        processLogDocumentReadingRequest(params, res);
     else if(action == "loganswer")
-        doLogAnswer(params, res);
+        processLogAnswerClickingRequest(params, res);
     else if(action == "query")
-        doQuery(params, res);
+        processQueryRequest(params, res);
     else if(action == "personal")
-        doPersonalProfile(params, res);
+        processQueryUserProfileRequest(params, res);
     else if(action == "submitphoto")
     {
-        doSubmitPhoto(params, res);
+        processSubmitPhotoRequest(params, res);
         connect(req, SIGNAL(end()), this, SLOT(onPhotoDone()));
-        req->storeBody();  // the request object will store the data internally
+        req->storeBody();  // the request object will store the data internally. WHY?
     }
 }
 
+/**
+ * Parse a request URL and get its parameters
+ * e.g., the URL is XXX/?action=query&apisig=YYY
+ * @param url   - the URL
+ * @return      - a Parameters object
+ */
 Server::Parameters Server::parseParameters(const QString& url) const
 {
     Parameters result;
@@ -76,7 +87,12 @@ Server::Parameters Server::parseParameters(const QString& url) const
     return result;
 }
 
-void Server::doPing(const Parameters& params, QHttpResponse* res)
+/**
+ * Process ping request and respond with a pong
+ * @param params    - parameters of the request
+ * @param res       - response
+ */
+void Server::processPingRequest(const Parameters& params, QHttpResponse* res)
 {
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
@@ -85,10 +101,14 @@ void Server::doPing(const Parameters& params, QHttpResponse* res)
     res->end();
 }
 
-void Server::doSave(const Parameters& params, QHttpResponse* res)
+/**
+ * Process saving FAQ request
+ * @param params    - parameters of the request
+ * @param res       - response
+ */
+void Server::processSaveRequest(const Parameters& params, QHttpResponse* res)
 {
-    // link and title may contain reserved chars, such as & < > #
-    // they are pertentage encoded by the client
+    // link and title may contain percentage encoded reserved chars, such as & < > #
     // convert them back to human readable chars
     DAO::getInstance()->save(params["username"],
                              params["email"],
@@ -103,9 +123,14 @@ void Server::doSave(const Parameters& params, QHttpResponse* res)
     res->end();
 }
 
-void Server::doLogAPI(const Server::Parameters& params, QHttpResponse* res)
+/**
+ * Process log document reading request
+ * @param params    - parameters of the request
+ * @param res       - response
+ */
+void Server::processLogDocumentReadingRequest(const Server::Parameters& params, QHttpResponse* res)
 {
-    DAO::getInstance()->logAPI(params["username"],
+    DAO::getInstance()->logAPIDocumentReading(params["username"],
                                params["email"],
                                params["apisig"]);
 
@@ -115,12 +140,16 @@ void Server::doLogAPI(const Server::Parameters& params, QHttpResponse* res)
     res->end();
 }
 
-void Server::doLogAnswer(const Server::Parameters& params, QHttpResponse* res)
+/**
+ * Process log answer clicking request
+ * @param params    - parameters of the request
+ * @param res       - response
+ */
+void Server::processLogAnswerClickingRequest(const Server::Parameters& params, QHttpResponse* res)
 {
-    // link may contain reserved chars, such as & < > #
-    // they are pertentage encoded by the client
+    // link may contain percentage encoded reserved chars, such as & < > #
     // convert them back to human readable chars
-    DAO::getInstance()->logAnswer(params["username"],
+    DAO::getInstance()->logAnswerClicking(params["username"],
                                   params["email"],
                                   QUrl::fromPercentEncoding(params["link"] .toUtf8()));
 
@@ -130,9 +159,14 @@ void Server::doLogAnswer(const Server::Parameters& params, QHttpResponse* res)
     res->end();
 }
 
-void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
+/**
+ * Process query FAQs request
+ * @param params    - parameters of the request
+ * @param res       - response
+ */
+void Server::processQueryRequest(const Server::Parameters& params, QHttpResponse* res)
 {
-    QJsonDocument json = DAO::getInstance()->query(params["class"]);
+    QJsonDocument json = DAO::getInstance()->queryFAQs(params["class"]);
     if(json.array().isEmpty())   // returned is a json array
         return;
     res->setHeader("Content-Type", "text/html");
@@ -141,9 +175,14 @@ void Server::doQuery(const Server::Parameters& params, QHttpResponse* res)
     res->end();
 }
 
-void Server::doPersonalProfile(const Server::Parameters& params, QHttpResponse* res)
+/**
+ * Process query user profile request
+ * @param params    - parameters of the request
+ * @param res       - response
+ */
+void Server::processQueryUserProfileRequest(const Server::Parameters& params, QHttpResponse* res)
 {
-    QJsonDocument json = DAO::getInstance()->personalProfile(params["username"]);
+    QJsonDocument json = DAO::getInstance()->queryUserProfile(params["username"]);
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
     res->write(SnippetCreator().createProfilePage(json.object()));
@@ -152,7 +191,12 @@ void Server::doPersonalProfile(const Server::Parameters& params, QHttpResponse* 
     qDebug() << SnippetCreator().createProfilePage(json.object());
 }
 
-void Server::doSubmitPhoto(const Server::Parameters& params, QHttpResponse* res)
+/**
+ * Process user photo submission
+ * @param params
+ * @param res
+ */
+void Server::processSubmitPhotoRequest(const Server::Parameters& params, QHttpResponse* res)
 {
     _photoUser = params["username"];
     res->writeHead(200);
@@ -160,6 +204,9 @@ void Server::doSubmitPhoto(const Server::Parameters& params, QHttpResponse* res)
     // do not call res->end(), because the photo transfer is not finished
 }
 
+/**
+ * Save the photo when the transfer is done
+ */
 void Server::onPhotoDone()
 {
     QHttpRequest* req = static_cast<QHttpRequest*>(sender());
@@ -169,10 +216,15 @@ void Server::onPhotoDone()
         file.write(req->body());
 }
 
-void Server::getStatic(const QString& url, QHttpResponse* res)
+/**
+ * Process static web page request
+ * @param url   - requested URL
+ * @param res   - response
+ */
+void Server::processStaticResourceRequest(const QString& url, QHttpResponse* res)
 {
     QFile file("." + url);
-    if(file.open(QFile::ReadOnly))
+    if(file.open(QFile::ReadOnly))  // open the local file and send it back
     {
         res->writeHead(200);
         res->write(file.readAll());

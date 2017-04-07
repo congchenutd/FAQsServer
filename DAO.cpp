@@ -1,4 +1,4 @@
-#include "DAO.h"
+﻿#include "DAO.h"
 #include "SimilarityComparer.h"
 #include "Settings.h"
 
@@ -31,7 +31,7 @@ DAO::DAO()
     QSqlQuery query;
     query.exec("create table APIs ( \
                ID        int primary key, \
-               Signature varchar unique not null)");    // lib;package.class.method
+               Signature varchar unique not null)");    // e.g., lib;package.class.method
     query.exec("create table Answers ( \
                ID    int primary key, \
                Link  varchar unique not null, \
@@ -57,12 +57,12 @@ DAO::DAO()
                QuestionID int references Questions(ID) on delete cascade on update cascade, \
                AnswerID   int references Answers  (ID) on delete cascade on update cascade, \
                primary key (QuestionID, AnswerID))");
-    query.exec("create table UserReadAPI ( \
+    query.exec("create table UserReadDocument ( \
                UserID int references Users(ID) on delete cascade on update cascade, \
                APIID  int references APIs (ID) on delete cascade on update cascade, \
                Time   varchar, \
                primary key (UserID, APIID, Time))");
-    query.exec("create table UserReadQuestion ( \
+    query.exec("create table UserReadAnswer ( \
                 UserID     int references Users    (ID) on delete cascade on update cascade, \
                 QuestionID int references Questions(ID) on delete cascade on update cascade, \
                 Time       varchar, \
@@ -73,6 +73,9 @@ DAO::DAO()
             this,      SLOT  (onComparisonResult(QString,QString,qreal)));
 }
 
+/**
+ * @return  - a new ID for a given table. ID starts from 0
+ */
 int DAO::getNextID(const QString& tableName) const
 {
     if(tableName.isEmpty())
@@ -82,6 +85,13 @@ int DAO::getNextID(const QString& tableName) const
     return query.next() ? query.value(0).toInt() + 1 : 0;
 }
 
+/**
+ * Find the ID of a record
+ * @param tableName - table name
+ * @param section   - section (column) name
+ * @param value     - value of the section
+ * @return          - ID of the record matching the query
+ */
 int DAO::getID(const QString& tableName, const QString& section, const QString& value) const
 {
     QSqlQuery query;
@@ -96,18 +106,25 @@ int DAO::getAPIID     (const QString& signature) const { return getID("APIs",   
 int DAO::getQuestionID(const QString& question)  const { return getID("Questions", "Question",  question); }
 int DAO::getAnswerID  (const QString& link)      const { return getID("Answers",   "Link",      link); }
 
+/**
+ * Write an API to db
+ * @param signature
+ */
 void DAO::updateAPI(const QString& signature)
 {
     if(signature.isEmpty() || getAPIID(signature) >= 0)
         return;
 
     QSqlQuery query;
-    query.prepare("insert into APIs values (:id, :sig)");
+    query.prepare("insert into APIs values (:id, :sig)");   // let it fail if the API exists, because APIs don't change
     query.bindValue(":id",  getNextID("APIs"));
     query.bindValue(":sig", signature);
     query.exec();
 }
 
+/**
+ * Update Users table
+ */
 void DAO::updateUser(const QString& userName, const QString& email)
 {
     if(userName.isEmpty())
@@ -129,6 +146,9 @@ void DAO::updateUser(const QString& userName, const QString& email)
     query.exec();
 }
 
+/**
+ * Update Questions table
+ */
 void DAO::updateQuestion(const QString& question, int apiID)
 {
     if(question.isEmpty())
@@ -294,34 +314,34 @@ void DAO::save(const QString& userName, const QString& email, const QString& api
     updateQuestionAnswerRelation(questionID, answerID);
 }
 
-void DAO::logAPI(const QString& userName, const QString& email, const QString& apiSig)
+void DAO::logAPIDocumentReading(const QString& userName, const QString& email, const QString& apiSig)
 {
     qDebug() << "Log link: " << userName << email << apiSig;
 
     updateUser(userName, email);
     updateAPI (apiSig);
-    addUserReadAPI(getUserID(userName), getAPIID(apiSig));
+    addUserReadDocument(getUserID(userName), getAPIID(apiSig));
 }
 
-void DAO::logAnswer(const QString& userName, const QString& email, const QString& link)
+void DAO::logAnswerClicking(const QString& userName, const QString& email, const QString& link)
 {
     qDebug() << "Log answer: " << userName << email << link;
 
     updateUser(userName, email);
-    addUserReadQuestion(getUserID(userName), getAnswerID(link));
+    addUserClickAnswer(getUserID(userName), getAnswerID(link));
 }
 
-void DAO::addUserReadAPI(int userID, int apiID)
+void DAO::addUserReadDocument(int userID, int apiID)
 {
     QSqlQuery query;
-    query.prepare("insert into UserReadAPI values (:userID, :apiID, :time)");
+    query.prepare("insert into UserReadDocument values (:userID, :apiID, :time)");
     query.bindValue(":userID", userID);
     query.bindValue(":apiID",  apiID);
     query.bindValue(":time",   getCurrentDateTime());
     query.exec();
 }
 
-void DAO::addUserReadQuestion(int userID, int answerID)
+void DAO::addUserClickAnswer(int userID, int answerID)
 {
     // find the question id associated with the answer
     QSqlQuery query;
@@ -331,8 +351,8 @@ void DAO::addUserReadQuestion(int userID, int answerID)
     {
         int questionID = query.value(0).toInt();
 
-        // add a UserReadQuestion record
-        query.prepare("insert into UserReadQuestion values (:userID, :questionID, :time)");
+        // add a UserReadAnswer record
+        query.prepare("insert into UserReadAnswer values (:userID, :questionID, :time)");
         query.bindValue(":userID",     userID);
         query.bindValue(":questionID", questionID);
         query.bindValue(":time",       getCurrentDateTime());
@@ -367,7 +387,7 @@ QString DAO::getCurrentDateTime() const {
 //},
 //{...}
 //]
-QJsonDocument DAO::query(const QString& classSig) const
+QJsonDocument DAO::queryFAQs(const QString& classSig) const
 {
     QJsonArray apisJson;
     QSqlQuery query;
@@ -439,7 +459,7 @@ QJsonArray DAO::createUsersJson(const QStringList& questionIDs) const
     query.exec(tr("select distinct UserID from UserAskQuestion \
                    where QuestionID in (%1) \
                    union \
-                   select distinct UserID from UserReadQuestion \
+                   select distinct UserID from UserReadAnswer \
                    where QuestionID in (%1)").arg(questionIDs.join(",")));
     while(query.next())
         result.append(createUserJson(query.value(0).toInt()));
@@ -482,7 +502,7 @@ QJsonArray DAO::createQuestionsJason(int apiID) const
     return result;
 }
 
-QJsonDocument DAO::personalProfile(const QString& userName) const
+QJsonDocument DAO::queryUserProfile(const QString& userName) const
 {
     int userID = getUserID(userName);
     if(userID == -1)
@@ -503,7 +523,7 @@ QJsonDocument DAO::personalProfile(const QString& userName) const
     query.exec(tr("select QuestionID from UserAskQuestion, Questions \
                      where QuestionID = ID and Parent = -1 and UserID = %1 \
                    union \
-                   select QuestionID from UserReadQuestion, Questions \
+                   select QuestionID from UserReadAnswer, Questions \
                      where QuestionID = ID and Parent = -1 and UserID = %1 \
                    order by QuestionID").arg(userID));
     QStringList questions;
@@ -530,7 +550,7 @@ QJsonDocument DAO::personalProfile(const QString& userName) const
     query.exec(tr("select Name, Email from UserAskQuestion, Users \
                      where QuestionID in (%1) and UserID = ID and UserID != %2 \
                    union \
-                   select Name, Email from UserReadQuestion, Users \
+                   select Name, Email from UserReadAnswer, Users \
                      where QuestionID in (%1) and UserID = ID and UserID != %2")
                .arg(questions.join(",")).arg(userID));
 
