@@ -1,4 +1,4 @@
-#ifndef HTMLCREATOR_H
+﻿#ifndef HTMLCREATOR_H
 #define HTMLCREATOR_H
 
 class QByteArray;
@@ -7,6 +7,8 @@ class QJsonObject;
 class QJsonDocument;
 
 // Convert Json to HTML snippet
+// The process is to follow the structure of the json input (and target HTML), and
+// iteratively fill in the templates
 class SnippetCreator
 {
 public:

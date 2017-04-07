@@ -1,4 +1,4 @@
-#include "Template.h"
+﻿#include "Template.h"
 #include <QFile>
 #include <QRegExp>
 
@@ -13,6 +13,9 @@ Template::Template(const QString& fileName)
     }
 }
 
+/**
+ * Add a value to an attribute
+ */
 void Template::addValue(const QString& attribute, const QString& value)
 {
     int placeHolder = _html.indexOf("$" + attribute + "$");
@@ -20,6 +23,9 @@ void Template::addValue(const QString& attribute, const QString& value)
         _html.insert(placeHolder, value);
 }
 
+/**
+ * Set the value of an attribute
+ */
 void Template::setValue(const QString& attribute, const QString& value) {
     _html.replace("$" + attribute + "$", value);
 }

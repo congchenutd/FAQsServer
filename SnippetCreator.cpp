@@ -1,4 +1,4 @@
-#include "SnippetCreator.h"
+﻿#include "SnippetCreator.h"
 #include "Template.h"
 #include "Settings.h"
 
@@ -8,8 +8,10 @@
 #include <QTextStream>
 #include <QDebug>
 
+//Examples:
+//Input:
 //{
-//    "style": "link of the stylesheet"
+//    "style": [link to the stylesheet]
 //    "apis": [{
 //                "api": "java.util.ArrayList.ensureCapacity",
 //                "questions":
@@ -23,20 +25,31 @@
 //            }]
 //}
 
+//Output:
 //{
-//    "style": "link of the stylesheet"
+//    "style": [link to the stylesheet]
 //    "apis": [{
 //                "api": "java.util.ArrayList.ensureCapacity",
 //                "html": "..."
 //            }]
 //}
+
+/**
+ * Convert FAQs content into HTML
+ * @param jaAPIs    - json array representing the content of the FAQs of an API
+ * @return          - an json document containing corresponding HTML
+ */
 QJsonDocument SnippetCreator::createFAQs(const QJsonArray& jaAPIs) const
 {
     QJsonObject joDocPage;
     Settings* settings = Settings::getInstance();
+
+    // stylesheet
     joDocPage.insert("style", QObject::tr("http://%1:%2/Templates/faqs.css")
                                         .arg(settings->getServerIP())
                                         .arg(settings->getServerPort()));
+
+    // FAQs -> HTML
     QJsonArray jaFAQs;
     for(QJsonArray::ConstIterator it = jaAPIs.begin(); it != jaAPIs.end(); ++it)
     {
@@ -51,6 +64,11 @@ QJsonDocument SnippetCreator::createFAQs(const QJsonArray& jaAPIs) const
     return QJsonDocument(joDocPage);
 }
 
+/**
+ * Convert a json object representing an API and its FAQs into HTML
+ * @param joAPI - a json object representing an API and its FAQs
+ * @return      - a QByteArray representing the content of the corresponding FAQs section HTML code
+ */
 QByteArray SnippetCreator::createFAQ(const QJsonObject& joAPI) const
 {
     Template tTitle("./Templates/FAQ.html");
@@ -59,6 +77,7 @@ QByteArray SnippetCreator::createFAQ(const QJsonObject& joAPI) const
 }
 
 // e.g.
+//Input:
 //{
 //    "api": "javax.swing.AbstractAction.getValue(java.lang.String)",
 //    "questions": [
@@ -80,6 +99,7 @@ QByteArray SnippetCreator::createFAQ(const QJsonObject& joAPI) const
 //    ]
 //}
 //
+//Output:
 //<ul>
 //	<li>question1 ( <a href="profile:Carl">Carl</a> )
 //		<ul>
@@ -87,6 +107,10 @@ QByteArray SnippetCreator::createFAQ(const QJsonObject& joAPI) const
 //		</ul>
 //	</li>
 //</ul>
+
+/**
+ * Do the actual work of createFAQ()
+ */
 QByteArray SnippetCreator::createQuestions(const QJsonObject& joAPI) const
 {
     QJsonArray jaQuestions = joAPI.value("questions").toArray();
@@ -140,6 +164,9 @@ QByteArray SnippetCreator::createQuestions(const QJsonObject& joAPI) const
     return tQuestions.toHTML();
 }
 
+/**
+ * Create profile page HTML
+ */
 QByteArray SnippetCreator::createProfilePage(const QJsonObject& joProfile) const
 {
     Template tProfilePage("./Templates/ProfilePage.html");
@@ -159,6 +186,9 @@ QByteArray SnippetCreator::createProfilePage(const QJsonObject& joProfile) const
     return tProfilePage.toHTML();
 }
 
+/**
+ * Create the profile section of a profile page
+ */
 QByteArray SnippetCreator::createProfileSection(const QJsonObject& joProfile) const
 {
     QString name  = joProfile.value("name") .toString();
@@ -169,6 +199,9 @@ QByteArray SnippetCreator::createProfileSection(const QJsonObject& joProfile) co
     return tProfile.toHTML();
 }
 
+/**
+ * Create the interested APIs section of a profile page
+ */
 QByteArray SnippetCreator::createInterestedAPIs(const QJsonObject& joProfile) const
 {
     Template tAPIs("./Templates/InterestedAPIs.html");
@@ -187,6 +220,9 @@ QByteArray SnippetCreator::createInterestedAPIs(const QJsonObject& joProfile) co
     return tAPIs.toHTML();
 }
 
+/**
+ * Create the related users section of a profile page
+ */
 QByteArray SnippetCreator::createRelatedUsers(const QJsonObject& joProfile) const
 {
     Template tUsers("./Templates/RelatedUsers.html");
@@ -201,6 +237,9 @@ QByteArray SnippetCreator::createRelatedUsers(const QJsonObject& joProfile) cons
     return tUsers.toHTML();
 }
 
+/**
+ * Create the user section of the related users section of a profile page
+ */
 QByteArray SnippetCreator::createUser(const QJsonObject& joUser) const
 {
     QString userName = joUser.value("name").toString();

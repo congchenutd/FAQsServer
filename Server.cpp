@@ -130,7 +130,7 @@ void Server::processSaveRequest(const Parameters& params, QHttpResponse* res)
  */
 void Server::processLogDocumentReadingRequest(const Server::Parameters& params, QHttpResponse* res)
 {
-    DAO::getInstance()->logAPIDocumentReading(params["username"],
+    DAO::getInstance()->logDocumentReading(params["username"],
                                params["email"],
                                params["apisig"]);
 
@@ -214,6 +214,8 @@ void Server::onPhotoDone()
     QFile file("./Photos/" + _photoUser + ".png");
     if(file.open(QFile::WriteOnly))
         file.write(req->body());
+
+    // FIXME: Regardless of the input file type, photos are saved as png. Test this!
 }
 
 /**

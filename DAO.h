@@ -19,7 +19,7 @@ public:
               const QString& question, const QString& link,  const QString& title);
 
     // log API reading history
-    void logAPIDocumentReading(const QString& userName, const QString& email, const QString& apiSig);
+    void logDocumentReading(const QString& userName, const QString& email, const QString& apiSig);
 
     // log answer clicking history
     void logAnswerClicking(const QString& userName, const QString& email, const QString& link);
@@ -66,8 +66,8 @@ private:
     QJsonObject createUserJson      (int userID)   const;  // a user    -> json
     QJsonArray  createAnswersJson   (const QStringList& questionIDs) const;  // question group -> its answers
     QJsonArray  createUsersJson     (const QStringList& questionIDs) const;  // question group -> its users
-    QJsonObject createQuestionJason (int leadID) const;  // question group -> json
-    QJsonArray  createQuestionsJason(int apiID)  const;  // api            -> its questions
+    QJsonObject createQuestionJson (int leadID) const;  // question group -> json
+    QJsonArray  createQuestionsJson(int apiID)  const;  // api            -> its questions
 
     QString getCurrentDateTime() const;
 
