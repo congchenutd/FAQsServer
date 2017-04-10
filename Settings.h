@@ -9,12 +9,17 @@ class Settings : public QSettings
 public:
     static Settings* getInstance();
 
-    double  getThreshold()  const;  // 判断两个句子是否是语义一致的阈值
-    QString getServerIP()   const;
-    uint    getServerPort() const;
+    QString getServerIP()               const;
+    uint    getServerPort()             const;
+    double  getSimilarityThreshold()    const;  // 判断两个句子是否是语义一致的阈值
+
+    void setServerIP            (const QString& ip);
+    void setServerPort          (uint port);
+    void setSimilarityThreshold (double threshold);
 
 private:
     Settings();
+    void loadDefaults();
 
 private:
     static Settings* _instance;

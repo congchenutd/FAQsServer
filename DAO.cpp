@@ -200,7 +200,7 @@ void DAO::measureSimilarity(const QString& question, int apiID)
 void DAO::onComparisonResult(const QString& leadQuestion,
                              const QString& question, qreal similarity)
 {
-    double threshold = qMax(Settings::getInstance()->getThreshold(), 0.5);
+    double threshold = qMax(Settings::getInstance()->getSimilarityThreshold(), 0.5);
     if(similarity <= threshold)
         return;
 
