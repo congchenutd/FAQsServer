@@ -25,6 +25,8 @@ Server::Server()
     Settings* settings = Settings::getInstance();
     server->listen(QHostAddress(settings->getServerIP()),
                    settings->getServerPort());
+
+    qDebug() << "FAQsServer running on port" << settings->getServerPort();
 }
 
 /**
@@ -166,12 +168,13 @@ void Server::processLogAnswerClickingRequest(const Server::Parameters& params, Q
  */
 void Server::processQueryRequest(const Server::Parameters& params, QHttpResponse* res)
 {
-    QJsonDocument json = DAO::getInstance()->queryFAQs(params["class"]);
-    if(json.array().isEmpty())   // returned is a json array
+    QJsonArray jaFAQs = DAO::getInstance()->queryFAQs(params["class"]).array();
+    if(jaFAQs.isEmpty())   // returned is a json array
         return;
     res->setHeader("Content-Type", "text/html");
     res->writeHead(200);
-    res->write(SnippetCreator().createFAQs(json.array()).toJson());
+    QJsonDocument jdSnippet = SnippetCreator().createFAQs(jaFAQs);  // create html, encapsulated in a json doc
+    res->write(jdSnippet.toJson());
     res->end();
 }
 

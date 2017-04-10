@@ -56,11 +56,15 @@ QJsonDocument SnippetCreator::createFAQs(const QJsonArray& jaAPIs) const
         QJsonObject joAPI = (*it).toObject();
         QJsonObject joFAQ;
         joFAQ.insert("apisig", joAPI.value("apisig").toString());
-        joFAQ.insert("html",   QString(createFAQ(joAPI)));
+
+        QString html = QString(createFAQ(joAPI));
+        joFAQ.insert("html",   html);
         jaFAQs.append(joFAQ);
     }
 
     joDocPage.insert("apis", jaFAQs);
+
+    qDebug() << joDocPage;
     return QJsonDocument(joDocPage);
 }
 

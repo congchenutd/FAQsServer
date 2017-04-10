@@ -344,6 +344,8 @@ void DAO::save(const QString& userName, const QString& email, const QString& api
     updateQuestionUserRelation  (questionID, userID);
     updateQuestionAPIRelation   (questionID, apiID);
     updateQuestionAnswerRelation(questionID, answerID);
+
+    qDebug() << "Save Q&A: " << userName << email << apiSig << question << link << title;
 }
 
 /**
@@ -354,11 +356,11 @@ void DAO::save(const QString& userName, const QString& email, const QString& api
  */
 void DAO::logDocumentReading(const QString& userName, const QString& email, const QString& apiSig)
 {
-    qDebug() << "Log document reading: " << userName << email << apiSig;
-
     updateUser(userName, email);
     updateAPI (apiSig);
     addUserReadDocument(getUserID(userName), getAPIID(apiSig));
+
+    qDebug() << "Log document reading: " << userName << email << apiSig;
 }
 
 /**
@@ -369,10 +371,10 @@ void DAO::logDocumentReading(const QString& userName, const QString& email, cons
  */
 void DAO::logAnswerClicking(const QString& userName, const QString& email, const QString& link)
 {
-    qDebug() << "Log answer clicking: " << userName << email << link;
-
     updateUser(userName, email);
     addUserClickAnswer(getUserID(userName), getAnswerID(link));
+
+    qDebug() << "Log answer clicking: " << userName << email << link;
 }
 
 /**
@@ -463,6 +465,8 @@ QJsonDocument DAO::queryFAQs(const QString& classSig) const
             apisJson.append(apiJson);
         }
     }
+
+    qDebug() << "Log query: " << apisJson;
 
     return QJsonDocument(apisJson);
 }
@@ -562,6 +566,7 @@ QJsonObject DAO::createQuestionJson(int leadID) const
 
         result.insert("users",   createUsersJson  (questionIDs));
         result.insert("answers", createAnswersJson(questionIDs));
+        qDebug() << result;
     }
 
     return result;
@@ -652,5 +657,6 @@ QJsonDocument DAO::queryUserProfile(const QString& userName) const
     }
     profileJson.insert("relatedusers", usersJson);   // add related users
 
+    qDebug() << "Query user profile: " << userName;
     return QJsonDocument(profileJson);
 }

@@ -1,0 +1,9 @@
+Server side of the COFAQs system
+
+Todo:
+- User authentication. 
+	Current system doesn't require user password. User names have to be unique.
+- Merge similar questions.
+	Current system relies on an external API to measure semantic similarity.
+- Automatic relevance confirmation
+	Now it is confirmed manually by clicking a "Helpful" or "Unhelpful" button.
