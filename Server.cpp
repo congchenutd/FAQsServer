@@ -23,8 +23,7 @@ Server::Server()
             this,   SLOT  (onRequest (QHttpRequest*, QHttpResponse*)));
             
     Settings* settings = Settings::getInstance();
-    server->listen(QHostAddress(settings->getServerIP()),
-                   settings->getServerPort());
+    server->listen(settings->getServerPort());
 
     qDebug() << "FAQsServer running on port" << settings->getServerPort();
 }
