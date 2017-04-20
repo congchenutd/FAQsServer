@@ -11,7 +11,7 @@ Settings* Settings::getInstance()
 }
 
 QString Settings::getServerIP()   const { return value("IP")    .toString(); }
-uint    Settings::getServerPort() const { return value("Port")  .toInt();    }
+uint    Settings::getServerPort() const { return value("Port")  .toUInt();   }
 double  Settings::getSimilarityThreshold()  const { return value("SimilarityThreshold").toDouble(); }
 
 void Settings::setServerIP  (const QString& ip) { setValue("IP", ip); }
